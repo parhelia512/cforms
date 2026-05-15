@@ -62,15 +62,13 @@ bitstruct ColorMode : uint
     ForeColorMode fore : 2..2;  // 1 bit
 }
 
-// bkg
-// 	pbk == checkbox, groupbox, label, radiobutton, trackbar
-// 	white == calendar, combo, dtp, listbox, listview, nump, tb, treeview
+// bitstruct ColorChange : ubyte
+// {
+// 	bool bgcChange : 0..0;
+// 	bool fgcChange : 1..1;
+// }
 
-// fgc
-// 	black == calendar, checkbox, combo, dtp, group, label, listbox, listview, nump, pgb, rb, tb, treeview
 
-// alias SpecialMouseMoveProc = fn MsgHandlerResult(Control* this, Hwnd hw, uint msg, Wparam wp, Lparam lp);
-// alias SpecialMouseLeaveProc = fn MsgHandlerResult(Control* this);
 
 struct Control
 {
@@ -101,20 +99,15 @@ struct Control
 	bool _isMouseTracking;
 	bool _isMouseEntered;
 	bool _isPressed;
-	bool createChilds;
 	
-	// SpecialMouseMoveProc _spMMoveProc;
-	// SpecialMouseLeaveProc _spMLeaveProc;
 	Hbrush _bkBrush;
-	Char16* _wideText;
-	WideString* _wtext;
+	WideString* _wsText;
+	CreateHandleFunc _createHandleFunc;
 	MouseEventFlags _mouseEvents;
 	MouseTrackingFlags _tmeFlags;
 	Font font;
 	Control* _parent;
 	Form* _ownerForm;
-	ControlList controls;
-
 
 	EventHandler onGotFocus;
 	EventHandler onLostFocus;
@@ -178,13 +171,9 @@ bitstruct MouseTrackingFlags : Dword {
 
 	//Set back color for Control
 	fn void Control.setBackColor(Control* this, uint clr)
-	{
-		
+	{		
 		this.backColor.updateColor(clr);
 		if ((this._drawMode & 2) != 2) this._drawMode += 2;
-		if (this.kind == ControlType.NUM_PICKER) {
-			((NumberPicker*)this).changeBackColorHelper();
-		}
 		if (this._isCreated) {
 			this._bkBrush = this.backColor.getBrush();
 			api_InvalidateRect(this.handle, null, false);
@@ -219,9 +208,8 @@ bitstruct MouseTrackingFlags : Dword {
 			if (this.kind == ControlType.GROUP_BOX) {
 				((GroupBox*)this).textSetter(value);
 			} else {
-				if (this._wideText) allocator::free(mem, this._wideText);
-				this._wideText = String.to_utf16(value, mem)!!.ptr;
-				api_SetWindowText(this.handle, this._wideText);
+				if (this._wsText) this._wsText.updateBuffer(value);
+				api_SetWindowText(this.handle, this._wsText.ptr());
 			}
 		}
 		// $echo("Compile check");
@@ -255,6 +243,8 @@ bitstruct MouseTrackingFlags : Dword {
 		this.onMouseEnter = evtProc;
 	}
 
+	
+
 	fn void Control.setMouseHoverHandlerInternal(&this, EventHandler evtProc) @private
 	{
 		this._mouseEvents.hover = true;
@@ -283,9 +273,39 @@ bitstruct MouseTrackingFlags : Dword {
 		this.onMouseLeave = evtProc;
 	}
 
+	fn void Control.prepareForSpecialMouseEvents(&this)
+	{		
+		if (this.onMouseEnter) {
+			this._mouseEvents.enter = true;
+			this._tmeFlags.leave = true;
+		}
 
-	fn int Control.right(&self)	{ return self.getMappedRect().right;	}
-	fn int Control.bottom(&self)	{ return self.getMappedRect().bottom;	}
+		if (this.onMouseHover) {
+			this._mouseEvents.hover = true;
+			this._tmeFlags.hover = true;
+
+			if(this.kind == ControlType.COMBO_BOX) {
+				ComboBox* cmb = (ComboBox*)(this);
+				if (cmb._hoverTimer) cmb._hoverTimer.destroy();
+				cmb._hoverTimer = newTimer(cmb.handle, 400);
+
+			} else if(this.kind == ControlType.NUM_PICKER) {
+				NumberPicker* nump = (NumberPicker*)(this);
+				if (nump._hoverTimer) nump._hoverTimer.destroy();
+				nump._hoverTimer = newTimer(nump.handle, 400);
+			}
+		}
+
+		if (this.onMouseLeave) {
+			this._mouseEvents.leave = true;
+			this._tmeFlags.leave = true;
+		}
+		
+	}
+
+
+	fn int Control.right(&this)	{ return this.getMappedRect().right;	}
+	fn int Control.bottom(&this)	{ return this.getMappedRect().bottom;	}
 // End Public Functions
 
 
@@ -300,49 +320,59 @@ bitstruct MouseTrackingFlags : Dword {
 		this.ypos = y;
 		this.width = w;
 		this.height = h;
+		this._style = this.kind.wstyle;
+		this._exStyle = this.kind.wexStyle;
+		this.ctlID = globalCtlID;
 		this.name = dstring::new(mem, this.kind.prefix);
 		this.name.appendf("%d", *ctlCounter);
 		*ctlCounter += 1;
+		globalCtlID += 1;
 
 		if (ctxt != "" && this.kind.info.isTextable) {
 			this.text = ctxt;
-			this._wideText = String.to_utf16(ctxt, mem)!!.ptr;
+			this._wsText = newWideString(ctxt);
 		}
 
 		// Handle Style Inheritance (The GroupBox passthrough)
 		if (parent) {
-			Control* styleSource = (parent.kind == ControlType.GROUP_BOX) ? parent._parent : parent;
-			if (styleSource) {
-				if (this.kind.info.hasFont) {this.font.cloneFrom(styleSource.font);	}
+			this._ownerForm = parent.kind == ControlType.NONE ? (Form*)parent : parent._ownerForm;
+			if (this._ownerForm) {
+				if (this.kind.info.hasFont) {this.font.cloneFrom(this._ownerForm.font);	}
 				if (this.kind.info.bcm == BackColorMode.INHERIT_BGC) {
-					this.backColor = styleSource.backColor;
+					this.backColor = this._ownerForm.backColor;
+
 				} else if (this.kind.info.bcm == BackColorMode.WHITE_BGC) {
 					this.backColor = newColor(0xFFFFFF);
-				} else {
-					this.backColor = {};
-				}
+				} 
 
-				if (this.kind.info.blackForeColor) {
-					this.foreColor = newColor(0x000000);
-				} else {
-					this.foreColor = {};
-				}
+				if (this.kind.info.blackForeColor) this.foreColor = newColor(0x000000);
+				this._ownerForm.controls.push(this);
 			}
-			parent.controls.push(this);
 		}
 	}
 
-
-
-	fn void Control.createInternal(&this, bool special = false) @private => @pool()
+	// Base destructor for all control class.
+	// This will destroy/free common control resources.
+	fn void Control.baseDestroy(&this) 
 	{
-		if (!special) this.setCtlID();
-		Char16* text = this.kind.info.isTextable ? this._wideText : null;
+		// ptf("%s is going to destroy", this.name);
+		this.name.free();
+		if (this._wsText) this._wsText.finalize();
+		if (this._bkBrush) api_DeleteObject((Hgdiobj)this._bkBrush);
+		if (this._cmenuUsed) this.contextMenu.destroy();
+		if (this.kind.info.hasFont && this.font.handle) this.font.destroy();
+	}
+
+
+	fn void Control._createInternal(&this, int width, int height) @private
+	{
+		if (this.handle) return;
+		Char16* pWtxt = this._wsText ? this._wsText.ptr() : null;
 		Pvoid lastParam = this.kind == ControlType.PICTURE_BOX? (Pvoid)this : (Pvoid)null;
 		this.handle = api_CreateWindowEx(this._exStyle, &this.kind.clsName[0],
-										text, this._style,
+										pWtxt, this._style,
 										this.xpos, this.ypos,
-										this.width, this.height,
+										width, height,
 										this._parent.handle,
 										(Hmenu)this.ctlID,
 										app.hins, lastParam);
@@ -351,14 +381,10 @@ bitstruct MouseTrackingFlags : Dword {
 			this._isCreated = true;
 			this._cachedWidth = this.width;
 			this._cachedHeight = this.height;
-			if (this._parent.kind == ControlType.NONE) {
-				this._ownerForm = (Form*)(this._parent);
-			} else {
-				this._ownerForm = this._parent._ownerForm;
-			}
-		}
-		// $echo("Compile check");
-		
+			if (this.kind.info.hasFont) this._setFontInternal();
+		} else {
+			ptf("Cannot create Control handle! Error code: %d", api_GetLastError());
+		}		
 	}
 
 	fn void Control.setComboInfo(&this, ComboInfo ci)
@@ -458,29 +484,22 @@ bitstruct MouseTrackingFlags : Dword {
 		}
 	}
 
-	fn Rect Control.getMappedRect(&self)
+	fn Rect Control.getMappedRect(&this)
 	{
 		Hwnd firstHwnd;
 		Rect rc;
-		if (self._isCreated)
-		{
-			api_GetClientRect(self.handle, &rc);
-			firstHwnd = self.handle;
+		if (this._isCreated){
+			api_GetClientRect(this.handle, &rc);
+			firstHwnd = this.handle;
+			api_MapWindowPoints(firstHwnd, this._parent.handle, (LpPoint)&rc, 2);
+		} else {
+			// firstHwnd = this._parent.handle;
+			rc = {this.xpos, this.ypos, (this.xpos + this.width), (this.ypos + this.height)};
 		}
-		else
-		{
-			firstHwnd = self._parent.handle;
-			rc = {self.xpos, self.ypos, (self.xpos + self.width), (self.ypos + self.height)};
-		}
-		api_MapWindowPoints(firstHwnd, self._parent.handle, (LpPoint)&rc, 2);
+		
 		return rc;
 	}
 
-	fn void Control.setCtlID(Control* ctl) @private
-	{
-		ctl.ctlID = globalCtlID;
-		globalCtlID += 1;
-	}
 
 	fn void Control.setSubClass(Control* ctl, Subclassproc pFunc) @private
 	{
@@ -493,15 +512,9 @@ bitstruct MouseTrackingFlags : Dword {
 		return api_SendMessage(ctl.handle, msg, (Wparam)wpm, (Lparam)lpm);
 	}
 
-	fn void Control.setFontInternal(Control* ctl) @private
+	fn void Control._setFontInternal(Control* ctl) @private @inline
 	{
-		// if (!ctl.font._isCreated) ctl.font.createFontHandle(ctl.handle);
-		if (!ctl.font._isCreated) {
-			ctl.font.createHandle(); //Not working properly.
-			// if (ctl.kind == ControlType.RADIO_BUTTON) {
-			// 	print("rb font set");
-			// }
-		}
+		if (!ctl.font._isCreated) ctl.font.createHandle();
 		ctl.sendMsg(WM_SETFONT, ctl.font.handle, true);
 	}
 
@@ -515,21 +528,21 @@ bitstruct MouseTrackingFlags : Dword {
 	fn void Control.setFont1(Control* c, Font* font) @private
 	{
 		c.font = *font;
-		if (c._isCreated) c.setFontInternal();
+		if (c._isCreated) c._setFontInternal();
 	}
 
 	fn void Control.setFont2(Control* c, String fname, int fsize) @private
 	{
 		Font f = newFont(fname, fsize);
 		c.font = f;
-		if (c._isCreated) c.setFontInternal();
+		if (c._isCreated) c._setFontInternal();
 	}
 
 	fn void Control.setFont3(Control* c, String fname, int fsize, FontWeight fweight) @private
 	{
 		Font f = newFont(fname, fsize, fweight);
 		c.font = f;
-		if (c._isCreated) c.setFontInternal();
+		if (c._isCreated) c._setFontInternal();
 	}
 
 	fn void Control.setIdealSize(&this) @private  //261023 // Only used CheckBox & RadioButton
@@ -566,9 +579,8 @@ bitstruct MouseTrackingFlags : Dword {
 	{
 		this.text = txt;
 		if (this._isCreated) {
-			allocator::free(mem, this._wideText);
-			this._wideText = String.to_utf16(this.text, mem)!!.ptr;
-			api_SetWindowText(this.handle, this._wideText);
+			if (this._wsText) this._wsText.updateBuffer(txt);
+			api_SetWindowText(this.handle, this._wsText.ptr());
 			if (this._autoSizable) this.setIdealSize();
 		}
 	}
@@ -608,18 +620,7 @@ bitstruct MouseTrackingFlags : Dword {
 						this.width, this.height, flag);
 	}
 
-	// Base destructor for all control class.
-	// This will destroy/free common control resources.
-	fn void Control.baseDestroy(&this) 
-	{
-		// ptf("%s is going to destroy", this.name);
-		this.name.free();
-		if (this._wtext) this._wtext.finalize();
-		if (this._bkBrush) api_DeleteObject((Hgdiobj)this._bkBrush);
-		if (this._wideText) allocator::free(mem, this._wideText);
-		if (this._cmenuUsed) this.contextMenu.destroy();
-		if (this.font.handle) this.font.destroy();
-	}
+	
 
 	fn bool trackMouse(Hwnd hwnd, uint flags, uint hoverTime = HOVER_DEFAULT)
 	{

@@ -45,8 +45,7 @@ TrayIcon* ti;
 fn void makeWindow()
 {
 	frm = newForm("Cforms gui library", width:1050, height:600);	
-	frm.createChilds = true; // Child controls will create their hwnd immediately.
-	frm.enablePrintPoint(); // This will print x,y cordinates when we click on form. It's handy in design time.
+	frm.enablePrintPoint(); // To print x,y cordinates when we click on form. It's handy in design time.
 	frm.createHandle();
 	
 	//Add a tray icon for our program

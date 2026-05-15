@@ -59,19 +59,18 @@ struct Calendar
 	{
 		Calendar* this = allocator::new(mem, Calendar);
 		this.kind = ControlType.CALENDAR;
-		this._style = WS_VISIBLE | WS_CHILD | WS_TABSTOP;
-		this._exStyle = 0;
-		this.viewMode = ViewMode.MONTH_VIEW;
 		this.initBase(parent, x, y, 0, 0, &calNumber);
-		if (parent.createChilds) this.createHandle();
+		this.viewMode = ViewMode.MONTH_VIEW;
+		this._createHandleFunc = &_calCreateHandle;
 		return this;
 	}
 
 	// Create the handle of Calendar
-	fn void Calendar.createHandle(Calendar* this)
+	fn void _calCreateHandle(Control* ctl) @private
 	{
+		Calendar* this = (Calendar*)ctl;
 		this.setCalStyle();
-		this.createInternal();
+		this._createInternal(0, 0);
 		if (this.handle) {
 			this.setSubClass(&calWndProc);
 			this.postCreationTasks();

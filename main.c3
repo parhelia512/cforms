@@ -31,12 +31,11 @@ TrayIcon* ti;
 fn void makeWindow()
 {
 	frm = newForm("Cforms gui library", width:1050, height:600);	
-	frm.createChilds = true; // Child controls will create their hwnd immediately.
-	frm.enablePrintPoint(); // This will print x,y cordinates when we click on form. It's handy in design time.
-	frm.createHandle();
+	frm.enablePrintPoint(); // To print x,y cordinates when we click on form. It's handy in design time.
+	// frm.createHandle();
 	
 
-	// ptf("frm hwnd: %s", frm.handle);
+	
 	//Add a tray icon for our program
 	ti = newTrayIcon("cforms sample tray icon!", "cforms.ico");
 	ti.onLeftMouseDown = fn(c, e) => print("left mouse down on tray");
@@ -76,18 +75,19 @@ fn void makeWindow()
 	cmb = newComboBox(frm, b3.right() + 10, 10, enableInput: true);
 	// cmb = newComboBox(frm, 10, 10);
 	cmb.addItems("Windows", "Linux", "MacOS", "ReactOS");
-	cmb.setMouseEnterHandler(fn(c, e) => print("Mouse entered on Combo"));
-	cmb.setMouseLeaveHandler(fn(c, e) => print("Mouse leaved from Combo"));
-	cmb.setMouseHoverHandler(fn(c, e) => print("Mouse hovered in Combo"));
+	cmb.addItem(toStr(789)); 
+	cmb.onMouseEnter = fn(c, e) => print("Mouse entered on Combo");
+	cmb.onMouseLeave = fn(c, e) => print("Mouse leaved from Combo");
+	cmb.onMouseHover = fn(c, e) => print("Mouse hovered in Combo");
 	// Date time picker.
 	dtp = newDateTimePicker(frm, cmb.right() + 10, 10);
 
 	// Now a group box and set the forecolor.
 	gb = newGroupBox(frm,"Compiler Options", 10, b1.bottom() + 10, height:150);
 	gb.setForeColor(0x007f5f);	
-	gb.setMouseEnterHandler(fn(c, e) => print("Mouse entered on GroupBox"));
-	gb.setMouseLeaveHandler(fn(c, e) => print("Mouse leaved from GroupBox"));
-	gb.setMouseHoverHandler(fn(c, e) => print("Mouse hovered in GroupBox"));
+	gb.onMouseEnter = fn(c, e) => print("Mouse entered on GroupBox");
+	gb.onMouseLeave = fn(c, e) => print("Mouse leaved from GroupBox");
+	gb.onMouseHover = fn(c, e) => print("Mouse hovered in GroupBox");
 
 	// Two check boxes inside the group box.
 	cb = newCheckBox(gb, "Threads On", 10, 30);
@@ -99,9 +99,6 @@ fn void makeWindow()
 	CheckBox* cb3 = newCheckBox(gb, "Benchmark", 10, 100);
 
 	// Radio buttons inside the group box.
-	// rb1 = newRadioButton(frm, "Gui App0123", 880, 375);
-	// rb2 = newRadioButton(frm, "Gui App", 880, 410);
-	// RadioButton* rb3 = newRadioButton(frm, "Gui App", 880, 450);
 	rb1 = newRadioButton(gb2, "Console App", 10, 30);
 	rb2 = newRadioButton(gb2, "Gui App", 10, 65);
 	// RadioButton* rb3 = newRadioButton(gb2, "Gui App", 10, 95);
@@ -109,10 +106,10 @@ fn void makeWindow()
 	np1 = newNumberPicker(frm, 882, 317);
 	np1.onMouseEnter = fn(c, e) => print("Mouse entered on Numpick");
 	np1.onMouseLeave = fn(c, e) => print("Mouse leaved from Numpick");
-
+	np1.setBackColor(0xddAA45);	
 
 	Label* lb2 = newLabel(gb2, "Optimize", 10, 100);
-	np2 = newNumberPicker(gb2, lb2.right() + 10, 100, btnLeft:true);
+	np2 = newNumberPicker(gb2, 100, 100, btnLeft:true);
 	np2.setBackColor(0xcdb4db);	
 
 	// Let's create a List box and add some items.
@@ -146,17 +143,12 @@ fn void makeWindow()
 	pb = newProgressBar(frm, 15, 465);
 	pb.showPercentage = true;
 
-	// This is a RadioButton.
-	// rb1 = newRadioButton(gb2, "Console App", 20, cb2.bottom() + 10);
-	// rb2 = newRadioButton(gb2, "Gui App", 20, rb1.bottom() + 10);
-
-
 	// Let's create TextBox now.
 	tb = newTextBox(frm, "Enter some text", 700, 10);
 
 	// AWe are creating a TrackBar.
 	tk = newTrackBar(frm, 14, 380, evtFn: &onTrackChange );	
-	
+
 	// This is our TreeView with 3 main nodes.
 	tv = newTreeView(frm, 660, 270, height:200);
 	tv.addNodeWithChilds("Windows", "Vista", "Win7", "Win8", "Win10", "Win11");	

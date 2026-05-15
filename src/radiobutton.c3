@@ -43,25 +43,23 @@ struct RadioButton
 	{
 		RadioButton* this = allocator::new(mem, RadioButton);
 		this.kind = ControlType.RADIO_BUTTON;
-		this._style = WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON;
-		this._exStyle = WS_EX_LTRREADING | WS_EX_LEFT;
+		this.initBase(parent, x, y, width, height, &rbNumber, text);	
 		this._textStyle = DT_SINGLELINE | DT_VCENTER | DT_NOCLIP;
 		this.autoSize = true;
 		this._autoSizable = true;
 		this.onCheckedChanged = evtFn;
-		this.initBase(parent, x, y, width, height, &rbNumber, text);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_rbCreateHandle;
 		return this;
 	}
 
 	// Create the handle of RadioButton
-	fn void RadioButton.createHandle(RadioButton* this)
+	fn void _rbCreateHandle(Control* ctl) @private
 	{
+		RadioButton* this = (RadioButton*)ctl;
 		this.setRBStyle();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&rbWndProc);
-			this.setFontInternal();
 			if (this.checked) this.sendMsg(BM_SETCHECK, 1, 0);			
 			this.setIdealSize();	
 		}
@@ -123,7 +121,7 @@ struct RadioButton
 				if (this._drawMode & 1) api_SetTextColor(nmc.hdc, this.foreColor.ref);
 				// this._wtxt = String.to_utf16(this.text).ptr!!;
 				api_SetBkMode(nmc.hdc, 1);
-				api_DrawText(nmc.hdc, this._wideText, -1, &nmc.rc, this._textStyle);
+				api_DrawText(nmc.hdc, this._wsText.ptr(), -1, &nmc.rc, this._textStyle);
 				return CDRF_DODEFAULT;
 		}
 		return CDRF_DODEFAULT;

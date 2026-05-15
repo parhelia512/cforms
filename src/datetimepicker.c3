@@ -71,23 +71,21 @@ enum DTPFormat : int(String descrption, int value )
 	{
 		DateTimePicker* this = allocator::new(mem, DateTimePicker);
 		this.kind = ControlType.DATE_TIME_PICKER;
-		this._style = WS_VISIBLE | WS_CHILD | WS_TABSTOP;
-		this._exStyle = 0;
+		this.initBase(parent, x, y, 0, 0, &dtpNumber);	
 		this.format = DTPFormat.CUSTOM;
 		this.formatStr = " dd-MM-yyyy";
-		this.initBase(parent, x, y, 0, 0, &dtpNumber);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_dtpCreateHandle;
 		return this;
 	}
 
 	// Create the handle of DateTimePicker
-	fn void DateTimePicker.createHandle(DateTimePicker* this)
+	fn void _dtpCreateHandle(Control* ctl) @private
 	{
+		DateTimePicker* this = (DateTimePicker*)ctl;
 		this.seDTPStyle();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&dtpWndProc);
-			this.setFontInternal();
 			this.postCreationTasks();
 		}
 	}

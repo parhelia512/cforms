@@ -116,23 +116,19 @@ fn void GradDraw.dtor(GradDraw* g) @private
 	{
 		Button* this = allocator::new(mem, Button);
 		this.kind = ControlType.BUTTON;
-		// this._className = &btnClass[0];
-		this._textable = true;	
-		this._style = btnStyle;
-		this._exStyle = 0;// 0x00000004;
-		this.initBase(parent, x, y, width, height, &btnNumber, text);				
+		this.initBase(parent, x, y, width, height, &btnNumber, text);
+		this._createHandleFunc = &_btnCreateHandle;						
 		if (evtFn) this.onClick = evtFn;
-		if (parent.createChilds) this.createHandle();
 		return this;
 	}
 
 	// Create the handle of button
-	fn void Button.createHandle(Button* this)
+	fn void _btnCreateHandle(Control* ctl) @private
 	{
-		this.createInternal();
+		Button* this = (Button*)ctl;
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&btnWndProc);
-			this.setFontInternal();
 		}
 	}
 
@@ -194,7 +190,7 @@ fn void GradDraw.dtor(GradDraw* g) @private
 		api_SelectObject(ncd.hdc, (Hgdiobj)(this.font.handle));
 		// Char16* btext =  String.to_utf16(b.text).ptr!!;
 		// defer free(btext);
-        api_DrawText(ncd.hdc, this._wideText, -1, &ncd.rc, TXTFLAG);
+        api_DrawText(ncd.hdc, this._wsText.ptr(), -1, &ncd.rc, TXTFLAG);
         return CDRF_NOTIFYPOSTPAINT;
 	}
 

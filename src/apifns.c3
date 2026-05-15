@@ -119,6 +119,7 @@ extern fn int _msgBox(Hwnd hWnd, Char16* lpText, Char16* lpCaption, uint uType) 
 	extern fn Bool api_RestoreDC(Hdc, int) @extern("RestoreDC");
 	extern fn Bool api_BitBlt(Hdc, int, int, int, int, Hdc, int, int, Dword) @extern("BitBlt");
 	extern fn Bool api_GetObject(Handle, int, Pvoid) @extern("GetObjectW");
+	extern fn Bool api_Polyline(Hdc, Point*, int) @extern("Polyline");
 
 
 

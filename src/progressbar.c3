@@ -61,8 +61,7 @@ enum ProgressBarState : int {NONE, NORMAL, ERROR, PAUSED}
 	{
 		ProgressBar* this = allocator::new(mem, ProgressBar);
 		this.kind = ControlType.PROGRESS_BAR;
-		this._style = WS_VISIBLE | WS_CHILD;
-		this._exStyle = 0;
+		this.initBase(parent, x, y, width, height, &pbNumber);	
 		this.minValue = 0;
 		this.maxValue = 100;
 		this.step = 1;
@@ -70,19 +69,18 @@ enum ProgressBarState : int {NONE, NORMAL, ERROR, PAUSED}
 		this.barStyle = ProgressBarStyle.BLOCK_STYLE;
 		this.marqueeSpeed = 30; // Animation updated in each 30 milliseconds.
 		this.showPercentage = perc;
-		this.initBase(parent, x, y, width, height, &pbNumber);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_pgbCreateHandle;
 		return this;
 	}
 
 	// Create the handle of ProgressBar
-	fn void ProgressBar.createHandle(ProgressBar* this)
+	fn void _pgbCreateHandle(Control* ctl) @private
 	{
+		ProgressBar* this = (ProgressBar*)ctl;
 		this.setPbStyle();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&pbWndProc);
-			this.setFontInternal();
 			this.sendMsg(PBM_SETRANGE32, this.minValue, this.maxValue);
             this.sendMsg(PBM_SETSTEP, this.step, 0);
 		}

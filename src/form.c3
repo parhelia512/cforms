@@ -85,6 +85,7 @@ struct Form
 	int _formID;
 	CmbList _comboList;
 	MenuItems _menuItemList;
+	ControlList controls;
 		
 	TimerList _timerList;
 	Hinstance hinst;	
@@ -95,6 +96,7 @@ struct Form
 	Hbrush _menuHotBgBrush;
 	Hbrush _menuFrameBrush;
 	Colorref _menuGrayCref;	
+	
 
 	// Common events
 	EventHandler onLoad;
@@ -142,39 +144,47 @@ struct Form
 		this.backColor = app.defWinColor;
 		this._timerList.init(mem, 0);	
 		frmNumber += 1;
-		// $echo("newForm is okay");
+		this.controls.init(mem); // Init to hold 16 controls.
 		return this;
 	}
 
-	fn void Form.createHandle(&this) => @pool()
+	fn void Form.createHandle(&this) @private
 	{
 		this.setStyle();
 		this.setPosition();
-		Char16* title = this.text.to_temp_utf16()!!.ptr;
-		this.handle = api_CreateWindowEx(this._exStyle,
-										&className[0],
-										title,
-										this._style,
-										this.xpos, this.ypos,
-										this.width, this.height,
-										(Hwnd)0,
-										(Hmenu)0,
-										app.hins, (Pvoid)this);
+		@pool() {
+			Char16* title = this.text.to_temp_utf16()!!.ptr;
+			this.handle = api_CreateWindowEx(this._exStyle,
+												&className[0],
+												title,
+												this._style,
+												this.xpos, this.ypos,
+												this.width, this.height,
+												(Hwnd)0,
+												(Hmenu)0,
+												app.hins, (Pvoid)this);
+		};		
 		if (this.handle) {
 			this._isCreated = true;
-			
-			// app.fmap[this.handle] = this;
-			this.controls.init(mem); // Init to hold 16 controls.
-			// api_SetWindowLongPtr(this.handle, GWLP_USERDATA, bitcast(this, Longptr));
-			this.setFontInternal();
-			// $echo("163");
-			// api_ShowWindow(this.handle, 10);
+			this._setFontInternal();
+		} else {
+			ptf("Failed to create Form handle! Error code: %d", api_GetLastError());
 		}
 	}
 
 	fn void Form.show(&this)
-	{		
-		// api_UpdateWindow(this.handle);
+	{	
+		if (!this.handle) this.createHandle(); 
+		if (this.controls.len()) {
+			// Create all control hwnds.
+			foreach (ctl: this.controls) {
+				if (!ctl.handle) ctl._createHandleFunc(ctl);
+				ctl.prepareForSpecialMouseEvents();
+			}
+
+			// Check if any control consumes the special mouse events.
+
+		}
 		api_ShowWindow(this.handle, 10);
 		if (this._menuMapInited && !this._menubarCreated) this.menubar.createHandle();
 		if (!app.mainLoopOn) {
@@ -327,6 +337,8 @@ struct Form
 		// }
 		api_FillRect(hdc, &rc, this._bkBrush);
 	}
+
+	
 
 	
 

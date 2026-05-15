@@ -15,7 +15,7 @@ module cforms;
 
 int gbNumber = 1;
 const Dword PEN_WIDTH = 4;
-Dword gbStyleFlag = WS_CHILD | WS_VISIBLE | BS_GROUPBOX | BS_NOTIFY | BS_TEXT | BS_TOP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+Dword gbStyleFlag = WS_CHILD | WS_VISIBLE | BS_GROUPBOX | BS_NOTIFY | BS_TOP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 Char16[1] ewsa = {0};
 const Char16* EMP_WSTR_PTR = &ewsa[0];
 
@@ -36,7 +36,7 @@ struct GroupBox
 	bool _themeOff;
 	Size _txtSize;
 	GroupBoxStyle _gbStyle;
-	ControlList _controls;
+	ControlList controls;
 }
 
 // Public functions
@@ -48,39 +48,34 @@ struct GroupBox
 		GroupBox* this = allocator::new(mem, GroupBox);
 		this.kind = ControlType.GROUP_BOX;		
 		String gbtext = text == "" ? this.name.str_view() : text;
-		this._style = gbStyleFlag;
-		this._exStyle = WS_EX_CONTROLPARENT;
-		this.createChilds = true;
+		this.initBase(parent, x, y, width, height, &gbNumber, gbtext);	
 		this._normalText = true;
 		this._dbFill = true;
 		this._getWidth = true;
 		this._gbStyle = style;
 		this.controls.init(mem, 8); 
-		this._wtext = newWideString(gbtext);
-		this.initBase(parent, x, y, width, height, &gbNumber, gbtext);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_gbCreateHandle;
 		if (this._ownerForm._enablePrintPoint) this.onMouseDown = &printPoint;
-		// ptf("gb bkg %d", this.backColor.value);
 		return this;
 	}
 
 	// Create the handle of GroupBox
-	fn void GroupBox.createHandle(GroupBox* this)
+	fn void _gbCreateHandle(Control* ctl) @private
 	{
+		GroupBox* this = (GroupBox*)ctl;
 		this._bkBrush = api_CreateSolidBrush(this.backColor.ref);
 		if (this._gbStyle == GroupBoxStyle.OVERRRIDEN) {
 			this._pen = api_CreatePen(PS_SOLID, PEN_WIDTH, this.backColor.ref);
 		}
 		this._rct = {0, 0, this.width, this.height};
 		this._drawMode = 2;
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			if (this._gbStyle == GroupBoxStyle.CLASSIC) {
 				api_SetWindowTheme(this.handle, EMP_WSTR_PTR, EMP_WSTR_PTR);
             	this._themeOff = true;
 			}
 			this.setSubClass(&gbWndProc);
-			this.setFontInternal();
 		}
 	}
 
@@ -125,10 +120,10 @@ struct GroupBox
 
 	fn void GroupBox.setText(&this, String txt) {
 		this.text = txt;
-		if (this._wtext) {
-			this._wtext.updateBuffer(txt);
+		if (this._wsText) {
+			this._wsText.updateBuffer(txt);
 		} else {
-			this._wtext = newWideString(txt);
+			this._wsText = newWideString(txt);
 		}
 	}
 
@@ -186,10 +181,8 @@ struct GroupBox
 
 	fn void GroupBox.textSetter(GroupBox* this, String value) @private
 	{
-		if (this._wideText) allocator::free(mem, this._wideText);
-		this._wideText = String.to_utf16(value, mem)!!.ptr;
-		// this.getTextBounds();
-		api_SetWindowText(this.handle, this._wideText);
+		if (this._wsText) this._wsText.updateBuffer(value);
+		api_SetWindowText(this.handle, this._wsText.ptr());
 		api_InvalidateRect(this.handle, null, false);
 	}
 
@@ -226,7 +219,7 @@ fn Lresult gbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwor
 				Lresult ret = api_DefSubclassProc(hw, msg, wp, lp);
 				@using(newGraphics(DCMode.GET_DC, hw); Graphics gfx) {
 					gfx.drawLine(10, 10, this._txtWidth, this._pen);
-					gfx.textOut2(this._wtext, 12, 0, this.foreColor);
+					gfx.textOut2(this._wsText, 12, 0, this.foreColor);
 				};
 				return ret;
 			}
@@ -254,7 +247,7 @@ fn Lresult gbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwor
 			if (this._getWidth) {
 				Size ss;
 				api_SelectObject(hdc, (Hgdiobj)this.font.handle);
-				api_GetTextExtentPoint32(hdc, this._wtext.ptr(), this._wtext.wlen(), &ss);
+				api_GetTextExtentPoint32(hdc, this._wsText.ptr(), this._wsText.wlen(), &ss);
 				this._txtWidth = ss.cx + 10;
 				this._getWidth = false;
 			}

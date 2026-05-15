@@ -34,6 +34,7 @@ module cforms;
 	const Dword WS_EX_CLIENTEDGE = 512;
 	const Dword WS_EX_LTRREADING = 0x00000000;
 	const Dword WS_EX_LEFT = 0x00000000;
+	const Dword WS_EX_STATICEDGE = 0x00020000;
 	const Dword WS_VSCROLL = 2097152;
 	const Dword WS_HSCROLL = 1048576;
 	const int GWLP_USERDATA = -21;
@@ -240,6 +241,7 @@ module cforms;
 	const Dword ES_LEFT	= 0;
 	const Dword ES_CENTER = 1;
 	const Dword ES_RIGHT = 2;
+	const Dword ES_AUTOHSCROLL = 128;
 
 	// Calendar & DTP constants
 	const Dword MCS_WEEKNUMBERS = 0x4;
@@ -490,9 +492,9 @@ module cforms;
 
 // NumberPicker Constants
 	// const UDS_ALIGNRIGHT const UDS_ARROWKEYS const UDS_AUTOBUDDY const UDS_HOTTRACK;
-	const NPSTYLE = WS_VISIBLE | WS_CHILD | UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_HOTTRACK;
-	const NPTXTFLAG = DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_NOPREFIX ;
-	const NPBUDDYSTYLE = WS_CHILD | WS_VISIBLE | ES_NUMBER | WS_TABSTOP| WS_BORDER ;
+	const NPSTYLE = WS_VISIBLE | WS_CHILD | WS_TABSTOP | UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_HOTTRACK;
+	const NPTXTFLAG = DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_NOPREFIX;
+	const NPBUDDYSTYLE = WS_CHILD | WS_VISIBLE | ES_NUMBER | WS_TABSTOP;
 	const SWPFLAG = SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER;
 
 	const UDS_WRAP = 1;
@@ -705,4 +707,11 @@ module cforms;
 	const uint NIN_POPUPOPEN        =   (WM_USER + 6);
 	const uint NIN_POPUPCLOSE       =   (WM_USER + 7);
 
+const uint DCX_WINDOW = 0x00000001;
+const uint DCX_CACHE = 0x00000002;
+const uint RGN_AND = 1;
+const uint RGN_DIFF = 4;
+const uint RGN_COPY = 5;
+const uint DCX_INTERSECTRGN =  0x0000008;
+// const uint ONE_HRGN : HRGN : cast(HRGN)(cast(uintptr)1)
 	

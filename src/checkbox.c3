@@ -42,24 +42,23 @@ struct CheckBox
 	{
 		CheckBox* this = allocator::new(mem, CheckBox);
 		this.kind = ControlType.CHECK_BOX;
-		this._style = WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX;
-		this._exStyle = WS_EX_LTRREADING | WS_EX_LEFT;
+		this.initBase(parent, x, y, width, height, &cbNumber, text);	
 		this._textStyle = DT_SINGLELINE | DT_VCENTER;
 		this.autoSize = true;
 		this._autoSizable = true;
-		this.initBase(parent, x, y, width, height, &cbNumber, text);	
-		if (parent.createChilds) this.createHandle();		
+		this._createHandleFunc = &_cbCreateHandle;	
+		if (evtFn) this.onCheckedChanged = evtFn;
 		return this;
 	}
 
 	// Create the handle of CheckBox
-	fn void CheckBox.createHandle(CheckBox* this)
+	fn void _cbCreateHandle(Control* ctl) @private
 	{
+		CheckBox* this = (CheckBox*)ctl;
 		this.setCbStyle();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&cbWndProc);
-			this.setFontInternal();
 			this.setIdealSize();
 			if (this.checked) this.sendMsg(BM_SETCHECK, 1, 0);
 		}
@@ -106,7 +105,7 @@ struct CheckBox
 					// Adjusing rect. Otherwise, text will be drawn upon the check area
 					if (!this.rightAlign) {nmc.rc.left += 18;} else {nmc.rc.right -= 18;}
 					if (this._drawMode & 1) api_SetTextColor(nmc.hdc, this.foreColor.ref);
-					api_DrawText(nmc.hdc, this._wideText, -1, &nmc.rc, this._textStyle);
+					api_DrawText(nmc.hdc, this._wsText.ptr(), -1, &nmc.rc, this._textStyle);
 					return CDRF_SKIPDEFAULT;
 			}
 		return CDRF_DODEFAULT;

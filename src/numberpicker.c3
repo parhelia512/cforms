@@ -40,7 +40,7 @@ int npNumber = 1;
 Wstring npClass = {'m', 's', 'c', 't', 'l', 's', '_', 'u', 'p', 'd', 'o', 'w', 'n', '3', '2', 0};
 
 
-// NumberPicker control struct
+// NumberPicker control struct 
 struct NumberPicker
 {
 	inline Control control;
@@ -60,8 +60,6 @@ struct NumberPicker
 	DString fmtStr;
 	DString _valStr;
 	uint deciPrec;
-	int _linex; // The x coordinate for drawing line over the right/left border.
-	Hbrush _borderBrush; // Used to cover the three borders of buddy control.
 	Hpen _borderPen;
 	Dword _buddyStyle;
 	Dword _buddyExStyle;
@@ -72,10 +70,11 @@ struct NumberPicker
 	iptr _buddyCid;
 	Alignment textPos;
 	Rect _udRect;
-	Rect _tbRect;
 	Rect _myRect;
+	Rect _tbwrc;
 	Point _lastMpos;
 	Timer* _hoverTimer;
+	Point[4] _borderPts;
 	EventHandler onValueChanged;
 }
 
@@ -88,45 +87,41 @@ struct NumberPicker
 	{
 		NumberPicker* this = allocator::new(mem, NumberPicker);
 		this.kind = ControlType.NUM_PICKER;
-		this._style = NPSTYLE;
-		this._exStyle = 0;
+		this.initBase(parent, x, y, width, height, &npNumber);	
 		this.maxRange = 100;
 		this.minRange = 0;
 		this.deciPrec = 0;
 		this.buttonLeft = btnLeft;
 		this.step = 1;
 		this._buddyStyle = NPBUDDYSTYLE;
-		this._buddyExStyle = WS_EX_LEFT | WS_EX_LTRREADING;
+		this._buddyExStyle = WS_EX_LEFT;
 		this._topEdgeFlag = BF_TOPLEFT;
 		this._botEdgeFlag = BF_BOTTOM;
 		this.textPos = Alignment.LEFT;
 		this.fmtStr = dstring::new(mem, "%d");
 		this._valStr = dstring::new(mem, "0");
 		if (evtFn) this.onValueChanged = evtFn;
-		this.initBase(parent, x, y, width, height, &npNumber);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_npCreateHandle;
 		return this;
 	}
 
 	// Create the handle of NumberPicker
-	fn void NumberPicker.createHandle(NumberPicker* this)
+	fn void _npCreateHandle(Control* ctl) @private
 	{
+		NumberPicker* this = (NumberPicker*)ctl;
 		this.setNPStyle();
-		this.createUpdown();
+		this._createInternal(0, 0);
 		if (this.handle) {
-			this.setFontInternal();
 			this.setSubClass(&npWndProc);
 			this.createBuddyControl();
-			this.setBuddySubclass();
-			Hwnd oldBuddy = (Hwnd)this.sendMsg(UDM_SETBUDDY, this._buddyHandle, 0);
-			this.sendMsg(UDM_SETRANGE32, this.minRange, this.maxRange);
-			api_GetClientRect(this._buddyHandle, &this._tbRect);
+			this.setBuddySubclass();			
+			this.sendMsg(UDM_SETBUDDY, this._buddyHandle, 0);
+			this.sendMsg(UDM_SETRANGE32, this.minRange, this.maxRange);			
+			this.setBorderPoints();			
 			api_GetClientRect(this.handle, &this._udRect);
-			this.placeBuddy();
-			if (oldBuddy) api_SendMessage(oldBuddy, MM_BUDDY_RESIZE, 0, 0);
+			
 			api_SetRect(&this._myRect, this.xpos, this.ypos, (this.xpos + this.width), (this.ypos + this.height));
 			this.displayValue();
-			// ptf("np this._bkBrush %d, name: %s", this._bkBrush, this.name.str_view());
 		}
 	}
 
@@ -160,9 +155,6 @@ struct NumberPicker
 			this._botEdgeFlag = BF_BOTTOM;
 			if (this.textPos == Alignment.RIGHT) this.textPos = Alignment.LEFT;
 		}
-		api_SetWindowLongPtr(this.handle, GWL_STYLE, (Longptr)this._style);
-		this.placeBuddy();
-		api_SetWindowPos(this.handle, null, this.xpos, this.ypos, this.width, this.height, 0x0200 | 0x0001);
 	}
 
 	fn void NumberPicker.setMinRange(&this, int mrange)
@@ -196,10 +188,6 @@ struct NumberPicker
 		$endswitch
 	}
 
-	// fn void NumberPicker.setBackColor(&this, uint clr)
-	// {
-
-	// }
 
 // End of Public functions
 
@@ -222,34 +210,28 @@ struct NumberPicker
 			case Alignment.CENTER : this._buddyStyle |= ES_CENTER;
 			case Alignment.RIGHT : this._buddyStyle |= ES_RIGHT;
 		}
-		this._bkBrush = this.backColor.getBrush();
-		
-		Color clr = newColor(0xABABAB);		
-		this._borderBrush = api_CreateSolidBrush(clr.ref);	
-		this._borderPen = api_CreatePen(PS_SOLID, 2, this.backColor.ref);
+		this._bkBrush = this.backColor.getBrush();			
+		this._borderPen = api_CreatePen(PS_SOLID, 2, getClrRef(0xABADB3)); //B4B4B4, ABADB3
 	}
 
-	// When user changes back color, we need to re-create the border pen.
-	fn void NumberPicker.changeBackColorHelper(&this)
+	fn void NumberPicker.setBorderPoints(&this)
 	{
-		if (this._borderPen) api_DeleteObject((Hgdiobj)this._borderPen);
-		this._borderPen = api_CreatePen(PS_SOLID, 2, this.backColor.ref);
-		// print("border pen recreated");
+		api_GetWindowRect(this._buddyHandle, &this._tbwrc);
+		api_OffsetRect(&this._tbwrc, -this._tbwrc.left, -this._tbwrc.top);
+		if (this.buttonLeft) {  // ⊐
+			this._borderPts[1].x = this._tbwrc.right;
+			this._borderPts[2].x = this._tbwrc.right;
+			this._borderPts[2].y = this._tbwrc.bottom; 			
+			this._borderPts[3].y = this._tbwrc.bottom;
+
+		} else {  // ⊏
+			this._borderPts[0].x = this._tbwrc.right;
+			this._borderPts[2].y = this._tbwrc.bottom; 
+			this._borderPts[3].x = this._tbwrc.right;
+			this._borderPts[3].y = this._tbwrc.bottom; 
+		}
 	}
 
-	fn void NumberPicker.createUpdown(NumberPicker* this) @private
-	{
-		this.ctlID = globalCtlID;
-		globalCtlID += 1;
-		static Char16[*] updClassName = {'m', 's', 'c', 't', 'l', 's', '_', 'u', 'p', 'd', 'o', 'w', 'n', '3', '2', 0};
-		this.handle = api_CreateWindowEx( this._exStyle,
-											&updClassName[0],
-											null, this._style,
-											0, 0, 0, 0,
-											this._parent.handle, (Hmenu)this.ctlID,
-											app.hins, null);
-		if (this.handle) this._isCreated = true;
-	}
 
 	fn void NumberPicker.createBuddyControl(NumberPicker* this) @private
 	{
@@ -264,24 +246,11 @@ struct NumberPicker
                                                 this.width, this.height,
                                                 this._parent.handle, (Hmenu)this._buddyCid,
                                                 app.hins, null);
+		
 		api_SendMessage(this._buddyHandle, WM_SETFONT, (Wparam)this.font.handle, (Lparam)true);
 	}
 
-	fn void NumberPicker.placeBuddy(NumberPicker* this) @private
-	{
-		if (this.buttonLeft) {
-			this._linex = this._tbRect.left + 1;
-			api_SetWindowPos(this._buddyHandle, this.handle,
-							(this.xpos + this._udRect.right), this.ypos,
-							this._tbRect.right, this._tbRect.bottom, SWPFLAG);
-		} else {
-			this._linex = this._tbRect.right - 3;
-			api_SetWindowPos(this._buddyHandle, this.handle, this.xpos, this.ypos,
-							(this.width - (this._udRect.right - this._udRect.left)), this._tbRect.bottom, SWPFLAG);
-		}
-	}
-
-	fn void NumberPicker.setBuddySubclass(NumberPicker* this) @private
+	fn void NumberPicker.setBuddySubclass(NumberPicker* this) @private @inline
 	{
 		api_SetWindowSubclass(this._buddyHandle, &buddyWndProc, globalSubClsID, bitcast(this, Dwordptr));
 		globalSubClsID += 1;
@@ -345,33 +314,12 @@ struct NumberPicker
 	{
 		this._valStr.clear();
 		this._valStr.appendf(this.fmtStr.str_view(), this.value);
-		if (this._wideText) allocator::free(mem, this._wideText);
-		this._wideText = String.to_utf16(this._valStr.str_view(), mem)!!.ptr;
-		api_SetWindowText(this._buddyHandle, this._wideText);
-	}
-
-	fn void NumberPicker.paintBuddyBorder(&this, Hwnd hwnd)
-	{
-		/*-------------------------------------------------------------------------
-		Edit control needs WS_BORDER style to place the text properly aligned.
-		But if we use that style, it will draw a border on 4 sides of the edit.
-		That will separate our updown control and edit control into two parts.
-		And that's ugly. So we need to erase all the borders. But it is tricky.	
-		First, we will draw a frame over the current border with updown's border color.
-		Then, we will erase the right/left side border by drawing a line.
-		This line has the same back color of edit control. So the border is hidden. 
-		And the control will look like the one in .NET.  
-		----------------------------------------------------------------------------------*/
-		// api_FrameRect(hdc, &this._tbRect, this._borderBrush);
-		// Hpen fpen = api_CreatePen(PS_SOLID, 2, this.backColor.ref);
-		// defer api_DeleteObject((Hgdiobj)fpen);
-		// api_SelectObject(hdc, (Hgdiobj)fpen);
-		// api_MoveToEx(hdc, this._linex, 1, null);
-		// api_LineTo(hdc, this._linex, this._tbRect.bottom - 2);
-		@using(newGraphics(DCMode.WIN_DC, hwnd); Graphics gfx) {
-			gfx.drawFrameRect(&this._tbRect, this._borderBrush);
-			gfx.drawLine(this._linex, 1, this._tbRect.bottom - 2, this._borderPen);
-		};
+		if (this._wsText) {
+			this._wsText.updateBuffer(this._valStr.str_view());
+		} else {
+			this._wsText = newWideString(this._valStr.str_view());
+		}
+		api_SetWindowText(this._buddyHandle, this._wsText.ptr());
 	}
 
 	fn void NumberPicker.setValueInternal(&this, int delta) @private
@@ -448,7 +396,6 @@ struct NumberPicker
 	{
 		this.fmtStr.free();
 		this._valStr.free();
-		api_DeleteObject((Hgdiobj)this._borderBrush);
 		api_DeleteObject((Hgdiobj)this._borderPen);
 		if (this._hoverTimer) this._hoverTimer.destroy();
 		this.baseDestroy();
@@ -468,7 +415,7 @@ fn Lresult npWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwor
 		return 1;
 	}
 	switch (msg) {
-		case WM_DESTROY:			
+		case WM_NCDESTROY:			
 			api_RemoveWindowSubclass(hw, &npWndProc, scID);
 			this.dtor();
 
@@ -500,19 +447,51 @@ fn Lresult buddyWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, D
 		return 1;
 	}
 	switch (msg) {
-		case WM_DESTROY: 
+		case WM_NCDESTROY: 
 			api_RemoveWindowSubclass(hw, &buddyWndProc, scID);
 
-		case WM_PAINT:						
-			Lresult rs = api_DefSubclassProc(hw, msg, wp, lp); // Let the control do it's basic painting.					
-			this.paintBuddyBorder(hw);				
-			return rs;
-
 		case EM_SETSEL: return 1; // To eliminate the selection back color in edit.
-		case MM_BUDDY_RESIZE: 
-			this.placeBuddy(); // Fix for the strange behaviour in UDM_SETBUDDY message.
+
 		case MM_COLOR_EDIT: 
 			return (Lresult)this.colorMsgHandler(wp);
+
+		case WM_NCCALCSIZE:
+            /* By default, arrow button has a border on 3 sides.
+             * If we use WS_BORDER style for buddy edit control, we need to...
+             * cover it with unnecessary drawings. So, it's better to make...
+			 * room to draw a border and draw it on the 3 sides of buddy edit...
+             * in WM_NCPAINT. So we need to shrink the client area and make room.
+			 * ................................................................ */ 
+			 if (wp == 1 ) {
+                NCCalcSizeParams* pncsp = (NCCalcSizeParams*)lp;
+                if (!this.buttonLeft) {
+                    pncsp.rgrc[0].left += 1;
+                    pncsp.rgrc[0].top += 1;
+                    pncsp.rgrc[0].right -= 2;
+                    pncsp.rgrc[0].bottom -= 1;
+                } else {
+                    pncsp.rgrc[0].left += 2;
+                    pncsp.rgrc[0].top += 1;
+                    pncsp.rgrc[0].right -= 1;
+                    pncsp.rgrc[0].bottom -= 1; 
+                }                               
+                return 0;
+            }  
+
+		case WM_NCPAINT:
+            // We are drawing border on 3 sides of the edit control.
+            // Points are pre-calculated. 
+            Hrgn hrgn = (Hrgn)wp;   
+            Dword flags = DCX_WINDOW | DCX_CACHE | DCX_INTERSECTRGN;
+            if (wp == 1) flags = DCX_WINDOW | DCX_CACHE; 
+            Hdc hdc = api_GetDCEx(hw, hrgn, flags);
+            defer api_ReleaseDC(hw, hdc);   
+            if (hdc) {        
+                Hpen hOldPen = (Hpen)api_SelectObject(hdc, (Hgdiobj)(this._borderPen));       
+                api_Polyline(hdc, &this._borderPts[0], 4);
+				api_SelectObject(hdc, (Hgdiobj)(hOldPen));
+            }
+            return 0;
 		default:
 			return api_DefSubclassProc(hw, msg, wp, lp);
 	}

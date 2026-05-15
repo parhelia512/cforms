@@ -45,67 +45,7 @@ enum TextAlignment : char
 //     TREE_VIEW
 // }
 
-bitstruct ControlTypeInfo : char
-{
-    BackColorMode bcm: 0..1;
-    bool blackForeColor: 2..2;
-    bool isTextable: 3..3;
-    bool hasFont: 4..4;
-}
 
-enum ControlType : int ( String prefix, Wstring clsName, char value, ControlTypeInfo info)
-{ 
-    NONE = {"Form_", {'C', 'f', 'o', 'r', 'm', 's', '_', 'W', 'i', 'n', 'd', 'o', 'w',  0}, 
-                0, {NONE, false, false, false}},
-
-    BUTTON = {"Button_", {'B','u','t','t','o','n',0}, 1, {NONE, false, true, true}},
-
-    CALENDAR = {"Calendar_", {'S','y','s','M','o','n','t','h','C','a','l','3','2',0}, 
-                2, {NONE, false, false, false}},
-
-    CHECK_BOX = {"CheckBox_", {'B','u','t','t','o','n',0}, 3, {INHERIT_BGC, true, true, true}},
-
-    COMBO_BOX = {"ComboBox_", {'C','o','m','b','o','B','o','x',0}, 4, {WHITE_BGC, true, true, true}},
-
-    DATE_TIME_PICKER = {"DateTimePicker_", 
-                        {'S','y','s','D','a','t','e','T','i','m','e','P','i','c','k','3','2',0}, 
-                        5, {WHITE_BGC, true, true, true}},
-
-    GROUP_BOX = {"GroupBox_", {'B','u','t','t','o','n',0}, 6, {INHERIT_BGC, true, true, true}},
-
-    LABEL = {"Label_", {'S','t','a','t','i','c',0}, 7, {INHERIT_BGC, true, true, true}},
-
-    LIST_BOX = {"ListBox_", {'L', 'i', 's', 't', 'B', 'o', 'x', 0}, 9,
-                 {WHITE_BGC, true, false, true}},
-
-    LIST_VIEW = {"ListView_", {'S','y','s','L','i','s','t','V','i','e','w','3','2',0}, 9, 
-                    {WHITE_BGC, true, false, true}},
-
-    NUM_PICKER = {"NumberPicker_", 
-                    {'m', 's', 'c', 't', 'l', 's', '_', 'u', 'p', 'd', 'o', 'w', 'n', '3', '2', 0},
-                    10, {WHITE_BGC, true, true, true}},
-
-    PICTURE_BOX = {"PictureBox_", 
-                    {'C','f','o','r','m', 's', '_', 'P', 'i', 'c', 't', 'u', 'r', 'e', 'B', 'o', 'x', 0}, 
-                    11, {NONE, false, false, false}},
-
-    PROGRESS_BAR = {"ProgressBar_", 
-                    {'m','s','c','t','l','s','_','p','r','o','g','r','e','s','s','3','2',0}, 
-                    12, {NONE, true, true, true}},   
-
-    RADIO_BUTTON = {"RadioButton_", {'B','u','t','t','o','n',0}, 13, 
-                    {INHERIT_BGC, true, true, true}}, 
-
-    TEXT_BOX = {"TextBox_", {'E','d','i','t',0}, 14, {WHITE_BGC, true, true, true}},
-
-    TRACK_BAR = {"TrackBar_", 
-                    {'m','s','c','t','l','s','_','t','r','a','c','k','b','a','r','3','2',0}, 
-                    15, {INHERIT_BGC, false, false, false}},
-
-    TREE_VIEW = {"TreeView_", 
-                    {'S','y','s','T','r','e','e','V','i','e','w','3','2',0}, 
-                    16, {WHITE_BGC, true, false, true}},
-}
 
 enum Teste : int(String desc, Wstring clsName, int value)
 {

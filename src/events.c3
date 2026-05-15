@@ -11,6 +11,7 @@ alias NodeNotifyHandler = fn void(TreeView* this, TreeNode* node, String prop, v
 alias LVItemEventHandler = fn void(ListView* this, LVItemEventArgs* e);
 alias LVSelChangeEventHandler = fn void(ListView* this, LVSelChangedEventArgs* e);
 alias LVItemCheckEventHandler = fn void(ListView* this, LVItemCheckEventArgs* e);
+alias CreateHandleFunc = fn void(Control* this);
 
 
 

@@ -73,23 +73,22 @@ struct ListBox
 	{
 		ListBox* this = allocator::new(mem, ListBox);
 		this.kind = ControlType.LIST_BOX;
-		this._style = WS_VISIBLE | WS_CHILD | WS_BORDER  | LBS_NOTIFY | LBS_HASSTRINGS;
-		this._exStyle = 0;
+		this.initBase(parent, x, y, width, height, &lbxNumber);	
 		this._dummyIndex = -1;
 		this.selectedIndex = -1;
-		this.initBase(parent, x, y, width, height, &lbxNumber);	
-		if (parent.createChilds) this.createHandle();
+		this.items.init(mem, 8);
+		this._createHandleFunc = &_lbxCreateHandle;
 		return this;
 	}
 
 	// Create the handle of ListBox
-	fn void ListBox.createHandle(ListBox* this)
+	fn void _lbxCreateHandle(Control* ctl) @private
 	{
+		ListBox* this = (ListBox*)ctl;
 		this.setLbxStyle();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&lbxWndProc);
-			this.setFontInternal();
 			this.manageItems();
 		}
 	}

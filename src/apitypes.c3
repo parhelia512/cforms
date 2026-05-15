@@ -429,6 +429,12 @@ struct DateTimeInfo
 	WeekDays dayOfWeek;
 }
 
+struct NCCalcSizeParams 
+{
+	Rect[4] rgrc;
+	WindowPos* lppos;
+}
+
 struct Guid 
 {
     ulong  data1;

@@ -43,19 +43,18 @@ fn PictureBox* newPictureBox(Control* parent, int x, int y,
     if (!_isPbxClassReg) registerPBoxClass();
     PictureBox* this = allocator::new(mem, PictureBox);
     this.kind = ControlType.PICTURE_BOX;
-    this._style = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
-    this._exStyle = 0;
-    this._imgPath = imgPath;
     this.initBase(parent, x, y, width, height, &_pbxNumber);	
-    if (parent.createChilds) this.createHandle();    
+    this._imgPath = imgPath;
+    this._createHandleFunc = &_pbxCreateHandle;  
     return this;
 }
 
-fn void PictureBox.createHandle(&this)
+fn void _pbxCreateHandle(Control* ctl) @private
 {
+    PictureBox* this = (PictureBox*)ctl;
     if (this._imgPath.len > 0) this.setImageInternal(this._imgPath, false);
     this._size = {this.width, this.height};
-    this.createInternal(); 
+    this._createInternal(this.width, this.height); 
     if (this.handle) {
         // api_SetWindowLongPtr(this.handle, GWLP_USERDATA, bitcast(this, Longptr));
         api_GetClientRect(this.handle, &this._rect);

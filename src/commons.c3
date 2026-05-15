@@ -60,14 +60,18 @@ macro isStrLiteral(x)
 	return $res;
 }
 
-fn String makeStringFromAny( any value)
+macro String makeStringFromAny(value, bool* needToClone)
 {
-	switch (value.type) {
-		case String: 
-			return *(String*)value;
-		default: 
+	var $Type = $typeof(value);
+	$switch $Type:
+		$case String: 
+			ptf("make any : %s", value);
+			return (String)value;
+
+		$default: 
+			*needToClone = true;
 			return string::tformat("%s", value);
-	}
+	$endswitch
 }
 
 fn void printWchars(Char16* txt, int count)
@@ -118,19 +122,14 @@ fn double strToDouble(String s) @private
 	return libc::strtod(&s[0], &cp);
 }
 
-macro String toStr(x)
+macro String toStr(value, bool* isAlloc = null)
 {
-	var $Type = $typeof(x);
-	$switch $Type:
-		$case int: return int_to_string(x);
-		$case double: return dbl_to_string(x);
-		$default:
-			@pool() {
-				DString v = dstring::new_with_capacity(16, mem::temp_allocator());
-				v.printf("%d", i);
-				return v.copy_str();
-			};
-	$endswitch
+	$if $typeof(value) == String:
+		return *(String*)value;
+	$else
+		if (isAlloc) *isAlloc = true;
+		return string::tformat("%s", value);
+	$endif
 }
 
 fn void printStr(String ca) { print((char*)&ca);}

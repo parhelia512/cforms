@@ -82,26 +82,22 @@ struct ComboBox
 	{
 		ComboBox* this = allocator::new(mem, ComboBox);
 		this.kind = ControlType.COMBO_BOX;
-		this._style = WS_CHILD | WS_VISIBLE;
-		this._exStyle = WS_EX_CLIENTEDGE;
+		this.initBase(parent, x, y, width, height, &cmbNumber);	
 		this.selectedIndex = -1;
 		this.items.init(mem, 10);
 		this.hasInput = enableInput;
-		this.initBase(parent, x, y, width, height, &cmbNumber);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_cmbCreateHandle;
 		return this;
 	}
 
 	// Create the handle of ComboBox
-	fn void ComboBox.createHandle(ComboBox* this)
+	fn void _cmbCreateHandle(Control* ctl) @private
 	{
+		ComboBox* this = (ComboBox*)ctl;
 		this.preCreationJobs();
-		// print("Combo is abt to create its handle");
-		this.createInternal(true);
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
-			// print("Combo is abt to subclass");
 			this.setSubClass(&cmbWndProc);
-			this.setFontInternal();
 			this.getComboInfo();
 			this.insertItems();
 			if (this.selectedIndex > -1) this.sendMsg(CB_SETCURSEL, this.selectedIndex, 0);
@@ -117,21 +113,19 @@ struct ComboBox
 				this.selectedIndex = (int)this.sendMsg(CB_GETCURSEL, 0, 0 );
 				this._reEnabled = true;
 				api_DestroyWindow(this.handle);
-				this.createHandle();
+				_cmbCreateHandle(this);
 			}
 		}
 	}
 
-	fn void ComboBox.addItem(&this, any* item)
+	fn void ComboBox.addItem(&this, String item)
 	{
 		this.putItemInternal(item);
 	}
 
-	fn void ComboBox.addItems(&this, args...)
+	fn void ComboBox.addItems(&this, String... args)
 	{
-		foreach (item : args) {
-			this.putItemInternal(item);
-		}
+		foreach (item : args) {this.putItemInternal(item);}
 	}
 
 	fn void ComboBox.setSelIndex(&this, int index)
@@ -157,22 +151,22 @@ struct ComboBox
 
 // Private functions
 
-	macro void ComboBox.putItemInternal(&this, any item) => @pool()
+	fn void ComboBox.putItemInternal(&this, String item) => @pool()
 	{
-		String itemStr;
-		switch (item.type) {
-			case String: itemStr = *(String*)item;
-			case int: itemStr = string::tformat("%s", *(int*)item);	
-			case double:
-			case float:
-				itemStr = string::tformat("%s", *(double*)item);								
-		}		
-		Char16* witem = String.to_temp_utf16(itemStr)!!.ptr;
+		// String itemStr;
+		// switch (item.type) {
+		// 	case String: itemStr = *(String*)item;
+		// 	case int: itemStr = string::tformat("%s", *(int*)item);	
+		// 	case double:
+		// 	case float:
+		// 		itemStr = string::tformat("%s", *(double*)item);								
+		// }		
+		Char16* witem = String.to_temp_utf16(item)!!.ptr;
 		this.sendMsg(CB_ADDSTRING, 0, witem);
 
 		// Copy method is allocating memory and we need to 
 		// free these strings before freeing the list.
-		this.items.push(itemStr.copy(mem)); 
+		this.items.push(item); 
 	}
 
 	// Set pre creation info.
@@ -180,7 +174,7 @@ struct ComboBox
 	{
 		if (!this._reEnabled) {
 			// Means, combo is creating freshly
-			this.setCtlID();
+			// this.setCtlID();
 			this._bkBrush = this.backColor.getBrush();
 			if (this.hasInput) {
 				this._style |= CBS_DROPDOWN;
@@ -349,9 +343,9 @@ struct ComboBox
 	// Freeing resources used for this ComboBox.
 	fn void ComboBox.dtor(ComboBox* this) @private
 	{
-		if (this.items.len()) {			
-			foreach (item : this.items) item.free(mem); 
-		}
+		// if (this.items.len()) {			
+		// 	foreach (item : this.items) item.free(mem); 
+		// }
 		this.items.free();		
 		if (this._hoverTimer) this._hoverTimer.destroy();
 		this.baseDestroy();

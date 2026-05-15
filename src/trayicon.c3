@@ -97,7 +97,7 @@ fn TrayIcon* newTrayIcon( String tooltip, String iconpath = "")
         this._nid.uCallbackMessage = MM_TRAY_MSG;
         this._nid.hIcon = this._hTrayIcon;  
         this._nid.toolTipText[:tipTxt.len] = tipTxt[:^0];
-        api_Shell_NotifyIcon(NIM_ADD, &this._nid);  		
+        api_Shell_NotifyIcon(NIM_ADD, &this._nid);  	
     };
     return this;
 }

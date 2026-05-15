@@ -92,6 +92,7 @@ struct TreeView
 struct TreeNode
 {
 	Htreeitem handle;
+	Htreeitem _insAfter;
 	TreeView* _treePtr;
 	TreeNode* parentNode;
 	Hwnd _treeHwnd;
@@ -101,12 +102,16 @@ struct TreeNode
 	int _childCount;
 	int index;
 	int nodeID;
-	// int _nodeCount;
+	int _insPos;
 	Color foreColor;
 	Color backColor;
 	String text;
 	bool checked;
 	bool _isCreated;
+	bool _inList;
+	// bool _hasOwnedText;
+	bool _isRoot;
+	NodeOps _nodeOp;
 
 	NodeNotifyHandler _notifyHandler;
 	// NodeDisposeHandler disposeHandler;
@@ -121,13 +126,11 @@ struct TreeNode
 	{
 		TreeView* this = allocator::new(mem, TreeView);
 		this.kind = ControlType.TREE_VIEW;
-		this._style = TVSTYLE;
-		this._exStyle = 0;
+		this.initBase(parent, x, y, width, height, &tvNumber);	
 		this.lineColor = newColor(0x000000);
 		this._uniqNodeID = 100;
 		this.nodes.init(mem, 8);
-		this.initBase(parent, x, y, width, height, &tvNumber);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_tvCreateHandle;
 		return this;
 	}
 
@@ -147,113 +150,112 @@ struct TreeNode
 	}
 
 	// Create the handle of TreeView
-	fn void TreeView.createHandle(TreeView* this)
+	fn void _tvCreateHandle(Control* ctl) @private
 	{
+		TreeView* this = (TreeView*)ctl;
 		this.setTVStyle();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&tvWndProc);
-			this.setFontInternal();
 			if (this.backColor.value != 0xFFFFFF) this.sendMsg(TVM_SETBKCOLOR, 0, this.backColor.ref);
             if (this.foreColor.value != 0x000000) this.sendMsg(TVM_SETTEXTCOLOR, 0, this.foreColor.ref);
             if (this.lineColor.value != 0x000000) this.sendMsg(TVM_SETLINECOLOR, 0, this.lineColor.ref);
+			if (this.nodes.len()) {
+				foreach(tn: this.nodes) {this._insertAllNodes(tn);}
+			}
 		}
 	}
 
 	<*
-	 * @require this._isCreated
 	 * Add a node to tree view. There are two overloads for this macro.
 	 * 1. nodeOrText = TreeNode pointer. In this case, imgIndex & selImgIndex are irrelevent.
-	 * 2. nodeOrText = A string. In this case macro returns the newly created node pointer.
+	 * 2. nodeOrText = A string. This macro will create a new TreeNode pointer from that.
+	 * 3. nodeOrText = Any thing that can be converted to a string.
 	 *>
-	macro TreeNode* TreeView.addNode(TreeView* this, nodeOrText, imgIndex = -1, selImgIndex = -1)
+	macro TreeView.addNode(TreeView* this, nodeOrText, imgIndex = -1, selImgIndex = -1)
 	{
-		$switch $typeof(nodeOrText):
-			$case String: return this.addNode1(nodeOrText, imgIndex, selImgIndex);
-			$case TreeNode*:
-				this.addNode2(nodeOrText);
-				return null;
-			$default: $error "No overload for type";
-		$endswitch
+		TreeNode* node = makeNewNode(nodeOrText, imgIndex, selImgIndex);
+		if (node) this._tryAddNode(node);
 	}
 
 	<*
-	 * @require this._isCreated
 	 * Add more than one node to tree view. There are two overloads for this macro.
-	 * 1. params = A group of TreeNode pointers
-	 * 2. params = A group of Strings
+	 * 1. params = A collection of TreeNode pointers
+	 * 2. params = A collection of Strings or anything that can be converted to string.
 	 *>
 	macro void TreeView.addNodes(TreeView* this, params...)
 	{
-		any p1 = params[0]; // This may be a node text or a TreeNode pointer
-		switch (p1) {
-			case String:
-				foreach (txt: params) {
-					TreeNode* node = newTreeNode(txt);
-					this.addNodeInternal(NodeOps.ADDNODE, node);
-				}
-			case TreeNode*:
-				foreach (node: params) {this.addNodeInternal(NodeOps.ADDNODE, node);}
-			default:
-				print("Unknown type");
+		foreach (item: params) { 
+			TreeNode* node = makeNewNode(item, -1, -1);
+			if (node) this._tryAddNode(node);
 		}
-		foreach (node: nodes) this.addNodeInternal(NodeOps.ADDNODE, node);
 	}
 
 
-	macro TreeNode* TreeView.addChildNode(TreeView* this, TreeNode* parent, nodeOrText, Allocator using = mem)
+	macro void TreeView.addChildNode(TreeView* this, TreeNode* parent, nodeOrText)
 	{
-		$switch $typeof(nodeOrText):
-			$case String: return this.addChildNode1(nodeOrText, parent, using);
-			$case TreeNode*:				
-				this.addChildNode2(nodeOrText, parent);
-				return null;
-			$default: $error "No overload for type";
-		$endswitch
+		TreeNode* node = makeNewNode(nodeOrText, -1, -1);
+		this._tryAddChildNode(parent, node);
 	}
 
-	<*
-	 * @require this._isCreated
-	 *>
+	
 	macro void TreeView.addChildNodes(TreeView* this, TreeNode* parent, childs...)
 	{
-		any p1 = chlds[0];
-		switch (p1) {
-			case String: this.addChildNodes1(parent, childs);
-			case TreeNode*: this.addChildNodes2(parent, childs);
-			default: print("Unknown type");
+		foreach (item: childs) {
+			TreeNode* node = makeNewNode(item, -1, -1);
+			this._tryAddChildNode(parent, node);
 		}
 	}
 
-	macro TreeNode* TreeView.insertNode(TreeView* this, nodeOrText, indexNum, Allocator using = mem)
+	macro TreeNode* TreeView.insertNode(TreeView* this, nodeOrText, indexNum)
 	{
-		$switch $typeof(nodeOrText):
-			$case String: return this.insertNode1(nodeOrText, indexNum, using);
-			$case TreeNode*:
-				this.insertNode2(nodeOrText, indexNum);
-				return null;
-			$default: $error "No overload for type";
-		$endswitch
+		if (indexNum < 0 || indexNum >= this.nodes.len()) return;
+		TreeNode* node = makeNewNode(nodeOrText, -1, -1);
+		node._insPos = indexNum;
+		node.index = this._nodeCount;
+		node._nodeOp = NodeOps.INSERTNODE;
+		node._insAfter = indexNum == 0? TVI_FIRST : this.nodes[index - 1].handle;
+		node._isRoot = true;
+		node._treePtr = this;
+		this._nodeCount += 1;
+		this.nodes.push(node);
+		node._inList = true;
+		if (this.handle) this.addNodeInternal(node);
+
+		
 	}
 
-	macro TreeNode* TreeView.insertChildNode(TreeView* this, TreeNode* parent, nodeOrText,
+	macro void TreeView.insertChildNode(TreeView* this, TreeNode* parent, nodeOrText,
 													indexNum, Allocator using = mem)
 	{
-		$switch $typeof(nodeOrText):
-			$case String: return this.insertChildNode1(nodeOrText, parent, indexNum, using);
-			$case TreeNode*:
-				this.insertChildNode2(nodeOrText, parent, indexNum);
-				return null;
-			$default: $error "No overload for type";
-		$endswitch
+		if (indexNum < 0 || indexNum >= this.nodes.len()) return;
+		if (parent.nodes.size == 0) parent.nodes.init(mem, 4);
+		TreeNode* node = makeNewNode(nodeOrText, -1, -1);
+		node._insPos = indexNum;
+		node.index = parent._childCount;
+		node._nodeOp = NodeOps.INSERTCHILD;
+		node._insAfter = indexNum == 0? TVI_FIRST : this.nodes[(usz)indexNum - 1].handle;
+		node._treePtr = this;
+		parent._childCount += 1;
+		parent.nodes.push(node);
+		node._inList = true;
+		if (this.handle) this.addNodeInternal(node, parent);		
 	}
 
-	macro void TreeView.addNodeWithChilds(&this, items...)
+	fn void TreeView.addNodeWithChilds(&this, String... items)
 	{
-		TreeNode* tn = newTreeNode(makeStringFromAny(items[0]));
-		this.addNode2(tn);
+		TreeNode* pnode = makeNewNode(items[0], -1, -1);
+		pnode.nodes.init(mem, items.len - 1);
+		this._tryAddNode(pnode);
 		for (int i = 1; i < items.len; i++) {
-			this.addChildNode1(makeStringFromAny(items[i]), tn);
+			TreeNode* cnode = makeNewNode(items[i], -1, -1);
+			cnode._nodeOp = NodeOps.ADDCHILD;
+			cnode._insAfter = TVI_LAST;
+			cnode.index = pnode._childCount;
+			pnode._childCount += 1;
+			pnode.nodes.push(cnode);
+			cnode._inList = true;		 
+			if (this.handle) this.addNodeInternal(cnode, pnode);
 		}
 	}
 
@@ -270,75 +272,118 @@ struct TreeNode
 	}
 
 	//===========================Private Functions=============================================
-	fn TreeNode* TreeView.addNode1(TreeView* this, String txt, int img, int selImg) @private
+	// fn TreeNode* TreeView.addNode1(TreeView* this, String txt, int img, int selImg) @private
+	// {
+	// 	TreeNode* node = newTreeNode(txt, img, selImg);
+	// 	this.addNodeInternal(NodeOps.ADDNODE, node);
+	// 	return node;
+	// }
+
+	macro TreeNode* makeNewNode(nodeOrText, imgIndex, selImgIndex) @private
 	{
-		TreeNode* node = newTreeNode(txt, img, selImg);
-		this.addNodeInternal(NodeOps.ADDNODE, node);
+		TreeNode* node = null;
+		$switch $typeof(nodeOrText):
+			$case String: 
+				node = newTreeNode(nodeOrText, imgIndex, selImgIndex);				
+			$case TreeNode*:
+				node = nodeOrText;
+			$default: 
+				$error "makeNewNode: No overload for this type";
+		$endswitch
 		return node;
 	}
 
-	fn void TreeView.addNode2(TreeView* this, TreeNode* node) @private
+	fn void TreeView._tryAddNode(&this, TreeNode* node) @private
 	{
-		this.addNodeInternal(NodeOps.ADDNODE, node);
+		node._nodeOp = NodeOps.ADDNODE;
+		node._insAfter = TVI_LAST;
+		node.index = this._nodeCount;
+		node._isRoot = true;
+		node._treePtr = this;
+		this._nodeCount += 1;
+		this.nodes.push(node);
+		node._inList = true;
+		if (this.handle) this.addNodeInternal(node);
 	}
 
-	<*
-	 * @require this._isCreated
-	 *>
-	fn TreeNode* TreeView.addChildNode1(TreeView* this, String nodeTxt, TreeNode* parentNode,
-											Allocator using = mem) @private
+	fn void TreeView._tryAddChildNode(&this, TreeNode* parent, TreeNode* child) @private
 	{
-			TreeNode* tn = newTreeNode(nodeTxt);
-			this.addNodeInternal(NodeOps.ADDCHILD, tn, parentNode);
-			return tn;
+		if (!parent._inList) {
+			// We don't allow new nodes here.
+			ptf("Error: %s node is not added already!", parent.text);
+			return;
+		} 
+		if (parent.nodes.size == 0) parent.nodes.init(mem, 8);
+		child._nodeOp = NodeOps.ADDCHILD;
+		child._insAfter = TVI_LAST;
+		child.index = parent._childCount;
+		parent._childCount += 1;
+		parent.nodes.push(child);
+		child._inList = true;		 
+		if (this.handle) this.addNodeInternal(child, parent);		
 	}
+
+	fn void TreeView._insertAllNodes(&this, TreeNode* node, TreeNode* pnode = null) 
+	{
+		this.addNodeInternal(node, pnode);	
+		if (node.nodes.len()) {
+			foreach(tn: node.nodes) {this._insertAllNodes(tn, node);}
+		}
+	}
+	
+
+	fn void TreeView.addNode2(TreeView* this, TreeNode* node) @private
+	{
+		// this.addNodeInternal(NodeOps.ADDNODE, node);
+	}
+
 
 	<*
 	 * @require this._isCreated
 	 *>
 	fn void TreeView.addChildNode2(TreeView* this, TreeNode* node, TreeNode* parent) @private
 	{
-		this.addNodeInternal(NodeOps.ADDCHILD, node, parent);
+		// this.addNodeInternal(NodeOps.ADDCHILD, node, parent);
 	}
 
 	fn void TreeView.addChildNodes1(TreeView* this, TreeNode* parent, nodeTexts...) @private
 	{
-		foreach (txt: nodeTexts) {
-			String* nodeTxt = (String*)txt;
-			TreeNode* node = newTreeNode(*nodeTxt);
-			this.addNodeInternal(NodeOps.ADDCHILD, node, parent);
-		}
+		// foreach (txt: nodeTexts) {
+		// 	String* nodeTxt = (String*)txt;
+		// 	TreeNode* node = newTreeNode(*nodeTxt);
+		// 	this.addNodeInternal(NodeOps.ADDCHILD, node, parent);
+		// }
 	}
 
 	fn void TreeView.addChildNodes2(TreeView* this, TreeNode* parent, TreeNode*... nodes) @private
 	{
-		foreach (node: nodes) this.addNodeInternal(NodeOps.ADDCHILD, node, parent);
+		// foreach (node: nodes) this.addNodeInternal(NodeOps.ADDCHILD, node, parent);
 	}
 
 	fn TreeNode* TreeView.insertNode1(TreeView* this, String nodeTxt, int index, 
 										Allocator using = mem) @private
 	{
-		TreeNode* node = newTreeNode(nodeTxt);
-		this.addNodeInternal(NodeOps.INSERTNODE, node, pos: index);
-		return node;
+		// TreeNode* node = newTreeNode(nodeTxt);
+		// this.addNodeInternal(NodeOps.INSERTNODE, node, pos: index);
+		return null;
 	}
 
 	fn void TreeView.insertNode2(TreeView* this, TreeNode* node, int index) @private
 	{
-		this.addNodeInternal(NodeOps.INSERTNODE, node, pos: index);
+		// this.addNodeInternal(NodeOps.INSERTNODE, node, pos: index);
 	}
 
 	fn TreeNode* TreeView.insertChildNode1(TreeView* this, String nodeTxt, TreeNode* parent,
 												int index, Allocator using = mem) @private
 	{
-		TreeNode* tn = newTreeNode(nodeTxt);
-		this.addNodeInternal(NodeOps.INSERTCHILD, tn, parent, index);
-		return tn;
+		// TreeNode* tn = newTreeNode(nodeTxt);
+		// this.addNodeInternal(NodeOps.INSERTCHILD, tn, parent, index);
+		return null;
 	}
 
 	fn void TreeView.insertChildNode2(TreeView* this, TreeNode* node, TreeNode* parent, int index) @private
 	{
-		this.addNodeInternal(NodeOps.INSERTCHILD, node, parent, index);
+		// this.addNodeInternal(NodeOps.INSERTCHILD, node, parent, index);
 	}
 
 		// This macro can be used by both TreeView & TreeNode.
@@ -488,11 +533,8 @@ struct TreeNode
 	/**
 	 * required this._isCreated
 	**/
-	fn void TreeView.addNodeInternal(TreeView* this, 
-										NodeOps nop, 
-										TreeNode* node,
-										TreeNode* pnode = null, 
-										int pos = -1) @private => @pool()
+	fn void TreeView.addNodeInternal(TreeView* this, TreeNode* node, 
+										TreeNode* pnode = null) @private => @pool()
 	{
 		node._isCreated = true;
 		node._treeHwnd = this.handle;
@@ -514,54 +556,38 @@ struct TreeNode
 		TVInsertStruct tis;
 		tis.itemex = tvi;
 		tis.itemex.lParam = (Lparam)((void*) node);
+		tis.hInsertAfter = node._insAfter;
 		bool isRootNode = false;
 		String errMsg = "Can't Add";
 
-		switch(nop) {
-			case NodeOps.ADDNODE:
-				tis.hParent = TVI_ROOT;
-				tis.hInsertAfter = this._nodeCount > 0 ? this.nodes[(usz)this._nodeCount - 1].handle : TVI_FIRST;
-				isRootNode = true;
-				node.index = this._nodeCount;
+		switch(node._nodeOp) {
+		case NodeOps.ADDNODE:
+			tis.hParent = TVI_ROOT;
 
-			case NodeOps.INSERTNODE:
-				tis.hParent = TVI_ROOT;
-				tis.hInsertAfter = pos == 0 ? TVI_FIRST : this.nodes[(usz)pos - 1].handle;
-				isRootNode = true;
-				node.index = this._nodeCount;
-				errMsg = "Can't Insert";
+		case NodeOps.INSERTNODE:
+			tis.hParent = TVI_ROOT;
+			errMsg = "Can't Insert";
 
-			case NodeOps.ADDCHILD:
-				tis.hInsertAfter = TVI_LAST;
-				tis.hParent = pnode.handle;
-				node.parentNode = pnode;
-				node.index = pnode._childCount;
-				errMsg = "Can't Add Child";
+		case NodeOps.ADDCHILD:
+			tis.hParent = pnode.handle;
+			node.parentNode = pnode;
+			errMsg = "Can't Add Child";
 
-			case NodeOps.INSERTCHILD:
-				tis.hParent = pnode.handle;
-				tis.hInsertAfter = pos == 0 ? TVI_FIRST : pnode.nodes[(usz)pos - 1].handle;
-				node.parentNode = pnode;
-				node.index = pnode._childCount;
-				errMsg = "Can't Insert Child";
+		case NodeOps.INSERTCHILD:
+			tis.hParent = pnode.handle;
+			node.parentNode = pnode;
+			errMsg = "Can't Insert Child";
 		}
 
 		Lresult hItem = this.sendMsg(TVM_INSERTITEMW, 0, &tis);
-		// ptf("hitem %s", hItem);
 		if (hItem) {
 			node.handle = (Htreeitem)hItem;
 			this._uniqNodeID += 1;
-			if (isRootNode) {
-				this.nodes.push(node);
-				this._nodeCount += 1;
-			} else {
-				pnode.nodes.push(node);
-				pnode._childCount += 1;
-			}
 		} else {
-			ptf("%s node!, Error - %s", errMsg, api_GetLastError());
+			ptf("%s node!, Error - %d", errMsg, api_GetLastError());
 		}
 	}
+
 
 	fn void TreeView.nodeNotifyHandler(TreeView* this, TreeNode* node, String prop, void* data) @private
 	{

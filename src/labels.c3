@@ -43,27 +43,24 @@ struct Label
 	{
 		Label* this = allocator::new(mem, Label);
 		this.kind = ControlType.LABEL;
-		this._style = LBSTYLE;
-		this._exStyle = 0;// 0x00000004;
+		this.initBase(parent, x, y, width, height, &lbNumber, text);	
 		this.autoSize = true;
 		this._autoSizable = true;
-		this.initBase(parent, x, y, width, height, &lbNumber, text);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_lblCreateHandle;
 		return this;
 
 	}
 
 	// Create the handle of Label
-	fn void Label.createHandle(Label* this)
+	fn void _lblCreateHandle(Control* ctl) @private
 	{
+		Label* this = (Label*)ctl;
 		this.checkForAutoSize();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			if (this.autoSize) this.calculateAutoSize();
 			this.setSubClass(&lbWndProc);
-			this.setFontInternal();
 		}
-		// ptf("bk brush %s, bk clr %s, parent clr %x", lb._bkBrush, lb.backColor.ref, lb._parent.backColor.ref);
 	}
 
 // End of Public functions
@@ -84,7 +81,7 @@ struct Label
 		Hdc hdc = api_GetDC(this.handle) ;
 		Size ss;
 		api_SelectObject(hdc, (Hgdiobj)(this.font.handle));
-		api_GetTextExtentPoint32(hdc, this._wideText, this.text.len, &ss );
+		api_GetTextExtentPoint32(hdc, this._wsText.ptr(), this.text.len, &ss );
 		api_ReleaseDC(this.handle, hdc) ;
 		this.width = ss.cx + 3 ;
 		this.height = ss.cy  ;

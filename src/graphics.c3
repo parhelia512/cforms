@@ -2,6 +2,13 @@
 
 module cforms;
 
+/* Example usage-------------------------------
+    @using(newGraphics(DCMode.WIN_DC, hwnd); Graphics gfx) {
+        gfx.drawFrameRect(&this._tbRect, this._borderBrush);
+        gfx.drawLine(this._linex, 1, this._tbRect.bottom - 2, this._borderPen);
+    };
+*/
+
 struct Graphics 
 {
     Hdc hdc;

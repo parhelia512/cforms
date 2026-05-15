@@ -110,8 +110,7 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 	{
 		TrackBar* this = allocator::new(mem, TrackBar);
 		this.kind = ControlType.TRACK_BAR;
-		this._style = WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS;
-		this._exStyle = WS_EX_RIGHTSCROLLBAR | WS_EX_LTRREADING |WS_EX_LEFT;;
+		this.initBase(parent, x, y, width, height, &tkbNumber);	
 		this.minRange = 0;
 		this.maxRange = 100;
 		this.frequency = 10;
@@ -128,16 +127,16 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
         this.ticColor = newColor(0x3385ff);
 		this.customDraw = true;
 		this.onValueChanged = evtFn;
-		this.initBase(parent, x, y, width, height, &tkbNumber);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_tkbCreateHandle;
 		return this;
 	}
 
 	// Create the handle of TrackBar
-	fn void TrackBar.createHandle(&this)
+	fn void _tkbCreateHandle(Control* ctl) @private
 	{
+		TrackBar* this = (TrackBar*)ctl;
 		this.setTKBStyle();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&tkbWndProc);
 			if (this.customDraw) this.prepareForCustDraw();

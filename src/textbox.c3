@@ -58,24 +58,22 @@ enum TextCase : char {NORMAL, LOWERCASE, UPPERCASE}
 	{
 		TextBox* this = allocator::new(mem, TextBox);
 		this.kind = ControlType.TEXT_BOX;
-		this._style = 0x50010080;
-		this._exStyle = 0x00000204;
+		this.initBase(parent, x, y, width, height, &tbNumber, text);	
 		this.textCase = TextCase.NORMAL;
 		this.textType = TextType.NORMAL;
 		this.textAlign = Alignment.CENTER;
-		this.initBase(parent, x, y, width, height, &tbNumber, text);	
-		if (parent.createChilds) this.createHandle();
+		this._createHandleFunc = &_tbCreateHandle;
 		return this;
 	}
 
 	// Create the handle of TextBox
-	fn void TextBox.createHandle(TextBox* this)
+	fn void _tbCreateHandle(Control* ctl) @private
 	{
+		TextBox* this = (TextBox*)ctl;
 		this.setTbStyle();
-		this.createInternal();
+		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&tbWndProc);
-			this.setFontInternal();
 			if (this._cueReady) {
 				Char16* cuetext = String.to_utf16(this.cueStr.str_view(), mem)!!.ptr;
 				defer free(cuetext);

@@ -283,7 +283,7 @@ struct NumberPicker
 	{
 		/*-----------------------------------------------------------------------------
         Mouse leave event in NumberPicker control is a bit tricky. It's a combination
-        of a text box and button. And if we use UDS_HOTTRACK style, the
+        of a text box and button. And if we use UDS_HOTTRACK style, the 
         control internally uses TrackMouseEvent function to track the mouse movement
         in the rect of the arrow button only. So we have to create an imaginary rect over 
         the bondaries of these two controls. If mouse is inside that rect, 

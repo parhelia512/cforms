@@ -297,7 +297,7 @@ struct ComboBox
 		}
 
 		// We need special treatment for mouse hover event. That's why
-		// we are overriding base class method.
+		// we are overriding base class method.   
 		if (this._mouseEvents.hover && !this._hoverTriggered) {
 			this._lastMpos.x = (int)(loWord(lpm));
 			this._lastMpos.y = (int)(hiWord(lpm));

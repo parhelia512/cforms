@@ -1,6 +1,10 @@
 Created on: 29-Mar-2026 08:49 AM
 Purpose: Cforms changelog
 
+Version 1.03.1 (27-Jun-2026)
+    Fixed bug when handling the WM_NCCREATE message in Form & PictureBox.
+    Improved custom draw code for Button, CheckBox and RadioButton.
+
 Version 1.03.0 (15-May-2026)
     Lazy control handle creation has been implemented:
         Previously, users needed to call the createHandle function for Forms and controls. We have removed this redundancy, which solved many design issues and brought more convenience. We can now reduce the number of parameters for constructors. We can now use struct members like properties.

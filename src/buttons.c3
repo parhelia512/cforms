@@ -198,8 +198,8 @@ fn void GradDraw.dtor(GradDraw* g) @private
 	fn Lresult Button.drawBackColor(Button* b, NMCustomDraw* nmcd) @private
 	{
 		switch (nmcd.dwDrawStage) {
-			case CDDS_PREERASE:	// Note: This return value is critical. Otherwise we don't get below notifications.
-				return  CDRF_NOTIFYPOSTERASE;
+			// case CDDS_PREERASE:	// Note: This return value is critical. Otherwise we don't get below notifications.
+			// 	return  CDRF_NOTIFYPOSTERASE;
 			case CDDS_PREPAINT:
 				if ((nmcd.uItemState & BTN_CLICKED) == BTN_CLICKED) {
 					b.paintFlatColor(nmcd, b._fdraw.defBrush, b._fdraw.hotPen);
@@ -218,8 +218,8 @@ fn void GradDraw.dtor(GradDraw* g) @private
 	fn Lresult Button.drawGradientBackColor(Button* b, NMCustomDraw* nmcd) @private
 	{
 		switch (nmcd.dwDrawStage) {
-			case CDDS_PREERASE:	// Note: This return value is critical. Otherwise we don't get below notifications.
-				return  CDRF_NOTIFYPOSTERASE;
+			// case CDDS_PREERASE:	// Note: This return value is critical. Otherwise we don't get below notifications.
+			// 	return  CDRF_NOTIFYPOSTERASE;
 			case CDDS_PREPAINT:
 				if ((nmcd.uItemState & BTN_CLICKED) == BTN_CLICKED) {
 					b.paintGradientRound(nmcd.hdc, nmcd.rc, b._gdraw.defClr, b._gdraw.hotPen);
@@ -240,7 +240,7 @@ fn void GradDraw.dtor(GradDraw* g) @private
 		api_SelectObject(nmcd.hdc, (Hgdiobj)hbr);
 		api_SelectObject(nmcd.hdc, (Hgdiobj)pen);
 		api_RoundRect(nmcd.hdc, nmcd.rc.left, nmcd.rc.top, nmcd.rc.right, nmcd.rc.bottom, 5, 5);
-		api_FillPath(nmcd.hdc);
+		// api_FillPath(nmcd.hdc);
 	}
 
 	// Helper function for gradient color button.
@@ -251,7 +251,7 @@ fn void GradDraw.dtor(GradDraw* g) @private
 		api_SelectObject(dc, (Hgdiobj)pen);
 		api_SelectObject(dc, (Hgdiobj)gBrush);
 		api_RoundRect(dc, rc.left, rc.top, rc.right, rc.bottom, 5, 5);
-		api_FillPath(dc);
+		// api_FillPath(dc);
 	}
 
 	// Freeing resources used for this button.

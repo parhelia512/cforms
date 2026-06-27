@@ -467,18 +467,18 @@ struct ListViewColumn
 	// Adding item to ListView.
 	fn void ListView._addItemInternal(ListView* this, ListViewItem* pitem) @private => @pool()
 	{
-		LVItem lvi = {};
-        lvi.mask = LVIF_TEXT | LVIF_PARAM | LVIF_STATE;
-        if (pitem.imageIndex != -1) lvi.mask |= LVIF_IMAGE;
-        lvi.state = 0;
-        lvi.stateMask = 0;
-        lvi.iItem = pitem.index;
-        lvi.iSubItem = 0;
-        lvi.iImage = pitem.imageIndex;
-        lvi.pszText = pitem.text.to_temp_utf16()!!.ptr;
-        lvi.cchTextMax = 0; //pitem.text.len;
-        lvi.lParam = bitcast(pitem, Lparam);
-       	this.sendMsg(LVM_INSERTITEMW, 0, &lvi);
+		LVItem tagLVI = {};
+        tagLVI.mask = LVIF_TEXT | LVIF_PARAM | LVIF_STATE;
+        if (pitem.imageIndex != -1) tagLVI.mask |= LVIF_IMAGE;
+        tagLVI.state = 0;
+        tagLVI.stateMask = 0;
+        tagLVI.iItem = pitem.index;
+        tagLVI.iSubItem = 0;
+        tagLVI.iImage = pitem.imageIndex;
+        tagLVI.pszText = pitem.text.to_temp_utf16()!!.ptr;
+        tagLVI.cchTextMax = 0; //pitem.text.len;
+        tagLVI.lParam = bitcast(pitem, Lparam);
+       	this.sendMsg(LVM_INSERTITEMW, 0, &tagLVI);
 		if (pitem.subItems.len()) this._addSubItemsInternal(pitem);	
 	}
 

@@ -588,7 +588,7 @@ fn Lresult window_proc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
             this = bitcast(cs.lpCreateParams, Form*);            
             this.handle = hw;
             api_SetWindowLongPtr(hw, GWLP_USERDATA, bitcast(this, Longptr));
-            return 1; // Continue window creation
+            
         }
         return api_DefWindowProc(hw, msg, wp, lp);
 	}

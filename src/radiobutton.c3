@@ -111,8 +111,8 @@ struct RadioButton
 		NMCustomDraw* nmc = (NMCustomDraw*)lp;
 		switch (nmc.dwDrawStage) {
 			// case CDDS_PREERASE:	return CDRF_NOTIFYPOSTERASE;
-			case CDDS_PREPAINT:
-				return CDRF_NOTIFYPOSTPAINT;
+			// case CDDS_PREPAINT:
+			// 	return CDRF_NOTIFYPOSTPAINT;
 
 			case CDDS_POSTPAINT:
 				// print("118");

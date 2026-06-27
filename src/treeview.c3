@@ -234,7 +234,7 @@ struct TreeNode
 		node._insPos = indexNum;
 		node.index = parent._childCount;
 		node._nodeOp = NodeOps.INSERTCHILD;
-		node._insAfter = indexNum == 0? TVI_FIRST : this.nodes[(usz)indexNum - 1].handle;
+		node._insAfter = indexNum == 0? TVI_FIRST : parent.nodes[(usz)indexNum - 1].handle;
 		node._treePtr = this;
 		parent._childCount += 1;
 		parent.nodes.push(node);

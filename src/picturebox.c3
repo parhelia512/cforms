@@ -193,7 +193,6 @@ fn Lresult pbxWinProc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
             // Store it so subsequent messages have it
             api_SetWindowLongPtr(hw, GWLP_USERDATA, bitcast(this, Longptr));
             
-            return 1; // Continue PictureBox creation
         }
         // Messages before NCCREATE (rare) must go to default
         return api_DefWindowProc(hw, msg, wp, lp);

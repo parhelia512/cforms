@@ -99,14 +99,12 @@ struct CheckBox
 	fn Lresult CheckBox.wmNotifyHandler(CheckBox* this, Lparam lp) @private
 	{
 			NMCustomDraw* nmc = (NMCustomDraw*)lp;
-			switch (nmc.dwDrawStage) {
-				case CDDS_PREERASE:	return CDRF_NOTIFYPOSTERASE;
-				case CDDS_PREPAINT:
-					// Adjusing rect. Otherwise, text will be drawn upon the check area
-					if (!this.rightAlign) {nmc.rc.left += 18;} else {nmc.rc.right -= 18;}
-					if (this._drawMode & 1) api_SetTextColor(nmc.hdc, this.foreColor.ref);
-					api_DrawText(nmc.hdc, this._wsText.ptr(), -1, &nmc.rc, this._textStyle);
-					return CDRF_SKIPDEFAULT;
+			if (nmc.dwDrawStage == CDDS_PREPAINT) {
+				// Adjusing rect. Otherwise, text will be drawn upon the check area
+				if (!this.rightAlign) {nmc.rc.left += 18;} else {nmc.rc.right -= 18;}
+				if (this._drawMode & 1) api_SetTextColor(nmc.hdc, this.foreColor.ref);
+				api_DrawText(nmc.hdc, this._wsText.ptr(), -1, &nmc.rc, this._textStyle);
+				return CDRF_SKIPDEFAULT;
 			}
 		return CDRF_DODEFAULT;
 	}

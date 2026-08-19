@@ -56,7 +56,7 @@ enum TextCase : char {NORMAL, LOWERCASE, UPPERCASE}
 	fn TextBox* newTextBox(Control* parent, String text, int x = 10, int y = 10,
 							int width = 140, int height = 27)
 	{
-		TextBox* this = allocator::new(mem, TextBox);
+		TextBox* this = alloc::new(mem, TextBox);
 		this.kind = ControlType.TEXT_BOX;
 		this.initBase(parent, x, y, width, height, &tbNumber, text);	
 		this.textCase = TextCase.NORMAL;
@@ -67,7 +67,7 @@ enum TextCase : char {NORMAL, LOWERCASE, UPPERCASE}
 	}
 
 	// Create the handle of TextBox
-	fn void _tbCreateHandle(Control* ctl) @private
+	fn void _tbCreateHandle(Control* ctl) // @private
 	{
 		TextBox* this = (TextBox*)ctl;
 		this.setTbStyle();
@@ -99,7 +99,7 @@ enum TextCase : char {NORMAL, LOWERCASE, UPPERCASE}
 // Private functions
 
 	// Setting control's style bits.
-	fn void TextBox.setTbStyle(TextBox* this) @private
+	fn void TextBox.setTbStyle(TextBox* this) // @private
 	{
 		if (this.multiLine) this._style |= ES_MULTILINE | ES_WANTRETURN;
 		if (this.hideSelection) this._style |= ES_NOHIDESEL;
@@ -126,7 +126,7 @@ enum TextCase : char {NORMAL, LOWERCASE, UPPERCASE}
 	}
 
 	// Handling back & fore color changing in WndProc function
-	fn Hbrush TextBox.colorMsgHandler(TextBox* this, Wparam wpm) @private
+	fn Hbrush TextBox.colorMsgHandler(TextBox* this, Wparam wpm) // @private
 	{
 		if (this._drawMode) {
 			Hdc hdc = (Hdc)wpm;
@@ -137,16 +137,16 @@ enum TextCase : char {NORMAL, LOWERCASE, UPPERCASE}
 	}
 
 	// Freeing resources used for this TextBox.
-	fn void TextBox.dtor(TextBox* this) @private
+	fn void TextBox.dtor(TextBox* this) // @private
 	{
 		this.cueStr.free();
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult tbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult tbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	// io::printfn("message %s", msg);
 	TextBox* this = bitcast(refData, TextBox*);

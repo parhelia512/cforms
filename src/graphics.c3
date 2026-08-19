@@ -9,18 +9,19 @@ module cforms;
     };
 */
 
+// enum DCFreeMode {NONE, RELEASE, ENDPAINT}
 struct Graphics 
 {
     Hdc hdc;
+	Hwnd _frmHwnd;
     DCMode _dcMode;
-    Hwnd _frmHwnd;
     PaintStruct _ps;
     int _iDC;
 }
 
 macro Graphics newGraphics(DCMode dcMode, value) 
 {
-    var $Type = $typeof(value);
+    var $Type = $Typeof(value);
 	$switch $Type:
 		$case Hwnd: return newGraphics1(dcMode, value);
 		$case Wparam: return newGraphics2(value);
@@ -35,6 +36,7 @@ fn Graphics newGraphics1(DCMode dcMode, Hwnd hwnd)
     switch (dcMode) {
         case DCMode.ON_PAINT:
             this.hdc = api_BeginPaint(hwnd, &this._ps);
+			this._iDC = api_SaveDC(this.hdc);
         case DCMode.GET_DC:
             this.hdc = api_GetDC(hwnd);
         case DCMode.WIN_DC:
@@ -83,7 +85,7 @@ macro Hgdiobj Graphics.selectObject(this, obj, flag = 0)
 
 macro void @using(#ctor; @body(x))
 {
-    $typeof(#ctor) gx = #ctor;
+    $Typeof(#ctor) gx = #ctor;
     defer gx.finalize();
     @body(gx);
 }
@@ -95,7 +97,9 @@ fn void Graphics.finalize(this)
 {
     switch (this._dcMode) {
         case DCMode.ON_PAINT:
-            api_EndPaint(this._frmHwnd, &this._ps);
+			api_RestoreDC(this.hdc, this._iDC);
+            Bool x = api_EndPaint(this._frmHwnd, &this._ps);
+			ptf("EndPaint res %d", x);
         case DCMode.GET_DC:
         case DCMode.WIN_DC:
             api_ReleaseDC(this._frmHwnd, this.hdc);
@@ -145,6 +149,12 @@ fn void Graphics.drawLine(this, int x, int y, int p2, Hpen pen)
 fn void Graphics.drawFrameRect(this, Rect* prc, Hbrush hbr)
 {
     api_FrameRect(this.hdc, prc, hbr);
+}
+
+fn void Graphics.getTextSize(this, Control* pctl, Size* psz)
+{
+	api_SelectObject(this.hdc, (Hgdiobj)pctl.font.handle);
+	api_GetTextExtentPoint32(this.hdc, pctl._wsText.ptr(), pctl._wsText.wlen(), psz);
 }
 
 

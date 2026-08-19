@@ -40,7 +40,7 @@ struct CheckBox
 								int width = 140, int height = 27,
 								EventHandler evtFn = null)
 	{
-		CheckBox* this = allocator::new(mem, CheckBox);
+		CheckBox* this = alloc::new(mem, CheckBox);
 		this.kind = ControlType.CHECK_BOX;
 		this.initBase(parent, x, y, width, height, &cbNumber, text);	
 		this._textStyle = DT_SINGLELINE | DT_VCENTER;
@@ -52,7 +52,7 @@ struct CheckBox
 	}
 
 	// Create the handle of CheckBox
-	fn void _cbCreateHandle(Control* ctl) @private
+	fn void _cbCreateHandle(Control* ctl) // @private
 	{
 		CheckBox* this = (CheckBox*)ctl;
 		this.setCbStyle();
@@ -78,7 +78,7 @@ struct CheckBox
 
 
 
-	fn void CheckBox.setCbStyle(CheckBox* this) @private
+	fn void CheckBox.setCbStyle(CheckBox* this) // @private
 	{
 		if (this.rightAlign) {
 			this._style |= BS_RIGHTBUTTON ;
@@ -88,7 +88,7 @@ struct CheckBox
 	}
 
 	// Handling back & fore color changing in WndProc function
-	fn Hbrush CheckBox.colorMsgHandler(CheckBox* this, Wparam wpm) @private
+	fn Hbrush CheckBox.colorMsgHandler(CheckBox* this, Wparam wpm) // @private
 	{
 		Hdc hdc = (Hdc)wpm;
 		api_SetBkMode(hdc, TRANSPARENT);
@@ -96,7 +96,7 @@ struct CheckBox
 		return this._bkBrush;
 	}
 
-	fn Lresult CheckBox.wmNotifyHandler(CheckBox* this, Lparam lp) @private
+	fn Lresult CheckBox.wmNotifyHandler(CheckBox* this, Lparam lp) // @private
 	{
 			NMCustomDraw* nmc = (NMCustomDraw*)lp;
 			if (nmc.dwDrawStage == CDDS_PREPAINT) {
@@ -112,15 +112,15 @@ struct CheckBox
 
 
 	// Freeing resources used for this CheckBox.
-	fn void CheckBox.dtor(CheckBox* this) @private
+	fn void CheckBox.dtor(CheckBox* this) // @private
 	{
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult cbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult cbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	// io::printfn("message %s", msg);
 	CheckBox* this = bitcast(refData, CheckBox*);

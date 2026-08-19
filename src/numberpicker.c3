@@ -85,7 +85,7 @@ struct NumberPicker
 										EventHandler evtFn = null,
 										bool btnLeft = false)
 	{
-		NumberPicker* this = allocator::new(mem, NumberPicker);
+		NumberPicker* this = alloc::new(mem, NumberPicker);
 		this.kind = ControlType.NUM_PICKER;
 		this.initBase(parent, x, y, width, height, &npNumber);	
 		this.maxRange = 100;
@@ -106,7 +106,7 @@ struct NumberPicker
 	}
 
 	// Create the handle of NumberPicker
-	fn void _npCreateHandle(Control* ctl) @private
+	fn void _npCreateHandle(Control* ctl) // @private
 	{
 		NumberPicker* this = (NumberPicker*)ctl;
 		this.setNPStyle();
@@ -171,7 +171,7 @@ struct NumberPicker
 
 	macro NumberPicker.setValue(&this, nvalue)
 	{
-		$switch $typeof(nvalue).typeid:
+		$switch $Typeof(nvalue).typeid:
 			$case int: this.value = (double)nvalue;
 			$case double: this.value = nvalue;
 			$default: break;
@@ -181,7 +181,7 @@ struct NumberPicker
 
 	macro NumberPicker.setStep(&this, nstep)
 	{
-		$switch $typeof(nstep).typeid:
+		$switch $Typeof(nstep).typeid:
 			$case int: this.step = (double)nstep;
 			$case double: this.step = nstep;
 			$default: break;
@@ -194,7 +194,7 @@ struct NumberPicker
 // Private functions
 
 	// Setting control's style bits.
-	fn void NumberPicker.setNPStyle(NumberPicker* this) @private
+	fn void NumberPicker.setNPStyle(NumberPicker* this) // @private
 	{
 		if (this.buttonLeft) {
 			this._style ^= UDS_ALIGNRIGHT;
@@ -233,7 +233,7 @@ struct NumberPicker
 	}
 
 
-	fn void NumberPicker.createBuddyControl(NumberPicker* this) @private
+	fn void NumberPicker.createBuddyControl(NumberPicker* this) // @private
 	{
 		// Let's create the buddy control.
 		this._buddyCid = globalCtlID;
@@ -245,12 +245,12 @@ struct NumberPicker
                                                 this.xpos, this.ypos,
                                                 this.width, this.height,
                                                 this._parent.handle, (Hmenu)this._buddyCid,
-                                                app.hins, null);
+                                                app.hins, (Pvoid)null);
 		
 		api_SendMessage(this._buddyHandle, WM_SETFONT, (Wparam)this.font.handle, (Lparam)true);
 	}
 
-	fn void NumberPicker.setBuddySubclass(NumberPicker* this) @private @inline
+	fn void NumberPicker.setBuddySubclass(NumberPicker* this) // @private @inline
 	{
 		api_SetWindowSubclass(this._buddyHandle, &buddyWndProc, globalSubClsID, bitcast(this, Dwordptr));
 		globalSubClsID += 1;
@@ -310,7 +310,7 @@ struct NumberPicker
 		}
 	}
 
-	fn void NumberPicker.displayValue(&this) @private
+	fn void NumberPicker.displayValue(&this) // @private
 	{
 		this._valStr.clear();
 		this._valStr.appendf(this.fmtStr.str_view(), this.value);
@@ -322,7 +322,7 @@ struct NumberPicker
 		api_SetWindowText(this._buddyHandle, this._wsText.ptr());
 	}
 
-	fn void NumberPicker.setValueInternal(&this, int delta) @private
+	fn void NumberPicker.setValueInternal(&this, int delta) // @private
 	{
 		double tvalue = this.value + (delta * this.step);
         if (this.autoRotate) {
@@ -340,7 +340,7 @@ struct NumberPicker
 		this.displayValue();
 	}
 
-	fn void NumberPicker.wmNotifyHandler(&this, Lparam lpm) @private
+	fn void NumberPicker.wmNotifyHandler(&this, Lparam lpm) // @private
 	{
 		NMUpdown* nm = (NMUpdown*) lpm;
 		if (nm.hdr.code == UDN_DELTAPOS) {
@@ -354,7 +354,7 @@ struct NumberPicker
 	}
 
 	// Handling back & fore color changing in WndProc function
-	fn Hbrush NumberPicker.colorMsgHandler(&this, Wparam wpm) @private
+	fn Hbrush NumberPicker.colorMsgHandler(&this, Wparam wpm) // @private
 	{
 		// ptf("np this._bkBrush %d", this._bkBrush);
 		Hdc hdc = (Hdc)wpm;
@@ -367,7 +367,7 @@ struct NumberPicker
 		return this._bkBrush;
 	}
 
-	macro setNumberPickerProps(this, String prop, value) @private
+	macro setNumberPickerProps(this, String prop, value) // @private
 	{
 		switch (prop) {
 			// case "hideselection"
@@ -381,7 +381,7 @@ struct NumberPicker
 			case "step": this.setStep(value);
 			// case "fmtstr": ;
 			case "deciprec":
-				$switch $typeof(value).typeid:
+				$switch $Typeof(value).typeid:
 					$case int: this.setDeciPrec((uint)value);
 					$case uint: this.setDeciPrec(value);
 				$endswitch
@@ -392,19 +392,19 @@ struct NumberPicker
 	}
 
 	// Freeing resources used for this NumberPicker.
-	fn void NumberPicker.dtor(&this) @private
+	fn void NumberPicker.dtor(&this) // @private
 	{
 		this.fmtStr.free();
 		this._valStr.free();
 		api_DeleteObject((Hgdiobj)this._borderPen);
 		if (this._hoverTimer) this._hoverTimer.destroy();
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult npWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult npWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {
 	// io::printfn("message %s", msg);
 	NumberPicker* this = bitcast(refData, NumberPicker*);
@@ -436,7 +436,7 @@ fn Lresult npWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwor
 }
 
 
-fn Lresult buddyWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult buddyWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	// io::printfn("message %s", msg);
 	NumberPicker* this = bitcast(refData, NumberPicker*);	

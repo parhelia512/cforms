@@ -124,7 +124,7 @@ fn SizeEventArgs newSizeEventArgs(uint msg, Wparam wpm, Lparam lpm)
 {
 	SizeEventArgs sea;
 	if (msg == WM_SIZING) {
-		sea.sizedOn = SizedPosition.from_ordinal(wpm);
+		sea.sizedOn = (SizedPosition)wpm;
 		sea.formRect = *((Rect*) lpm);
 	} else {
 		sea.clientArea.width = loWord(lpm);
@@ -137,7 +137,7 @@ fn KeyEventArgs newKeyEventArgs(Wparam wpm)
 {
 	// log("93");
 	KeyEventArgs this;
-	this.keyCode = Keys.from_ordinal(wpm);
+	this.keyCode = (Keys)wpm;
 	switch (this.keyCode) {
 		case SHIFT:
 			this.shiftPressed = true;

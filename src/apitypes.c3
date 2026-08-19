@@ -110,6 +110,31 @@ struct CreateStruct {
 	Dword     dwExStyle;
 } 
 
+struct BitmapInfoHeader {
+  Dword biSize;
+  Long  biWidth;
+  Long  biHeight;
+  Word  biPlanes;
+  Word  biBitCount;
+  Dword biCompression;
+  Dword biSizeImage;
+  Long  biXPelsPerMeter;
+  Long  biYPelsPerMeter;
+  Dword biClrUsed;
+  Dword biClrImportant;
+}
+struct RGBQuad {
+  Byte rgbBlue;
+  Byte rgbGreen;
+  Byte rgbRed;
+  Byte rgbReserved;
+}
+
+struct BitmapInfo {
+  BitmapInfoHeader   bmiHeader;
+  RGBQuad[1]         bmiColors;
+}
+
 const int LF_FACESIZE = 32;
 struct LogFont {
 	Long  lfHeight;

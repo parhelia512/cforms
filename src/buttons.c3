@@ -20,23 +20,33 @@ const int BTN_CLICKED = 0b1;
 const int BTN_FOCUSED = 0b1000000;
 const Dword BS_NOTIFY = 16384;
 const Dword BS_PUSHBUTTON = 0;
+const Dword BI_RGB = 0;
+const uint DIB_RGB_COLORS = 0;
 // const Dword BSTYLE = WS_CHILD | BS_NOTIFY | WS_TABSTOP | WS_VISIBLE | BS_PUSHBUTTON  ;
 const uint TXTFLAG = DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_NOPREFIX;
 int btnNumber = 1;
 Wstring btnClass = {'B', 'u', 't', 't', 'o', 'n', 0};
 
-
+enum DrawMode : char {NONE, FLAT, GRAD}
 // Button control struct
 struct Button ()
 {
 	inline Control control;
-	FlatDraw _fdraw;
-	GradDraw _gdraw;
+	union {
+		FlatDraw* _fdraw;
+		GradDraw* _gdraw;
+	}
+	DrawMode _dmode;
+	bool _setDrawData;
+
 }
 
 // This struct holds infor required for drawing a flat colored button.
 struct FlatDraw
 {
+	RgbColor clr;
+	double hoverIntensity;
+	bool tintOnHover;
 	Hbrush defBrush;
 	Hbrush hotBrush;
 	Hpen defPen;
@@ -44,7 +54,7 @@ struct FlatDraw
 }
 
 // Setting the required info needed to draw a flat color button.
-fn void FlatDraw.setData(FlatDraw* this, Color c) @private
+fn void FlatDraw.setData1(FlatDraw* this, Color c) // @private
 {
 	RgbColor hotRc = c.makeRgbColor();
 	RgbColor frmRc = c.makeRgbColor();
@@ -61,60 +71,86 @@ fn void FlatDraw.setData(FlatDraw* this, Color c) @private
 }
 
 // This struct holds the info for drawing gradient bkg on button.
-struct GradDraw @private
+struct GradDraw // @private
 {
-	GradColor defClr;
-	GradColor hotClr;
-	bool rtl;
-	Hpen defPen;
-	Hpen hotPen;
+	RgbColor stColor;
+	RgbColor enColor;
+	RgbColor hoverStColor;
+	RgbColor hoverEnColor;
+	double hoverIntensity;
+	bool tintOnHover;
+	bool dirty;
+	Hbitmap defBmp;
+	Hbitmap hotBmp;
+	Hpen bPen;
+	Hrgn clipRgn;
+	Hdc memDC;
 }
 
 // Helper struct to hold all colors
-struct GradColor @private
+struct GradColor // @private
 {
 	RgbColor c1;
 	RgbColor c2;
 }
 
-// Setting data for required to create a gradient brush and related stuff.
-fn void GradDraw.setData(GradDraw* g, uint clr1, uint clr2) @private
+// Setting flat draw color information.
+fn bool FlatDraw.setData(FlatDraw* this, uint color, bool tint, double intensity)
 {
-	g.defClr.c1 = rgbFromUint(clr1);
-	g.defClr.c2 = rgbFromUint(clr2);
-	double hotAdj1 = g.defClr.c1.isDark() ? 1.5 : 1.2;
-	double hotAdj2 = g.defClr.c2.isDark() ? 1.5 : 1.2;
-	g.hotClr.c1 = g.defClr.c1.changeShadeRGB(hotAdj1);
-	g.hotClr.c2 = g.defClr.c2.changeShadeRGB(hotAdj2);
-	RgbColor frmRc = g.defClr.c1.changeShadeRGB(0.6);
-	g.defPen = api_CreatePen(PS_SOLID, 1, frmRc.makeColorRef());
-	g.hotPen = api_CreatePen(PS_SOLID, 1, g.hotClr.c1.changeShadeCREF(0.3));
+	this.clr = newRGBColor(color);
+	this.defBrush = api_CreateSolidBrush(this.clr.ref);
+	RgbColor hover_color = this.clr.changeShadeNew(tint, intensity);
+	this.hotBrush = api_CreateSolidBrush(hover_color.ref);
+	this.defPen = api_CreatePen(PS_SOLID, 1, this.clr.changeShadeNew(false, 0.25).ref);
+	this.hotPen = api_CreatePen(PS_SOLID, 1, this.clr.changeShadeNew(false, 0.5).ref);
+	return true;
+}
+
+// Setting data for required to create a gradient brush and related stuff.
+fn void Button.setGDrawData(&this, uint clr1, uint clr2) // @private
+{
+	GradDraw* gd = this._gdraw;
+	gd.stColor = newRGBColor(clr1);
+	gd.enColor = newRGBColor(clr2);
+	gd.hoverStColor = gd.stColor.changeShadeNew(gd.tintOnHover, gd.hoverIntensity);
+	gd.hoverEnColor = gd.enColor.changeShadeNew(gd.tintOnHover, gd.hoverIntensity);
+	gd.defBmp = this.buildGradientBitmap(gd.stColor, gd.enColor);
+	gd.hotBmp = this.buildGradientBitmap(gd.hoverStColor, gd.hoverEnColor);
+	RgbColor penClr = gd.stColor.changeShadeNew(false, 0.5);
+	gd.bPen = api_CreatePen(PS_SOLID, 1, penClr.ref);
+	gd.dirty = false;
+	this._setDrawData = true;
 }
 
 // Destroying resources used for flat color drawing
-fn void FlatDraw.dtor(FlatDraw* f) @private
+fn void FlatDraw.dtor(FlatDraw* this) // @private
 {
-	if (f.defBrush) api_DeleteObject((Hgdiobj) f.defBrush);
-	if (f.hotBrush) api_DeleteObject((Hgdiobj) f.hotBrush);
-	if (f.defPen) api_DeleteObject((Hgdiobj) f.defPen);
-	if (f.hotPen) api_DeleteObject((Hgdiobj) f.hotPen);
+	if (this.defBrush) api_DeleteObject((Hgdiobj) this.defBrush);
+	if (this.hotBrush) api_DeleteObject((Hgdiobj) this.hotBrush);
+	if (this.defPen) api_DeleteObject((Hgdiobj) this.defPen);
+	if (this.hotPen) api_DeleteObject((Hgdiobj) this.hotPen);
+	alloc::free(mem, this);
 }
 
 // Destroying resources used for gradient drawing
-fn void GradDraw.dtor(GradDraw* g) @private
+fn void GradDraw.dtor(GradDraw* gd) // @private
 {
-	if (g.defPen) api_DeleteObject((Hgdiobj) g.defPen);
-	if (g.hotPen) api_DeleteObject((Hgdiobj) g.hotPen);
+	if (gd.defBmp != null) deleteGDIObj{Hbitmap}(gd.defBmp);
+	if (gd.hotBmp != null) deleteGDIObj{Hbitmap}(gd.hotBmp);
+	if (gd.bPen != null) deleteGDIObj{Hpen}(gd.bPen);
+	if (gd.clipRgn != null) deleteGDIObj{Hrgn}(gd.clipRgn);
+	if (gd.memDC != null) api_DeleteDC(gd.memDC);
+	alloc::free(mem, gd);
 }
 
-// Public functions
+//#region Public functions
 	// Button constructor
 	fn Button* newButton(Control* parent, String text,
 							int x = 10, int y = 10,
 							int width = 120, int height = 35,
 							EventHandler evtFn = null)
 	{
-		Button* this = allocator::new(mem, Button);
+		Button* this = alloc::new(mem, Button);
 		this.kind = ControlType.BUTTON;
 		this.initBase(parent, x, y, width, height, &btnNumber, text);
 		this._createHandleFunc = &_btnCreateHandle;						
@@ -123,7 +159,7 @@ fn void GradDraw.dtor(GradDraw* g) @private
 	}
 
 	// Create the handle of button
-	fn void _btnCreateHandle(Control* ctl) @private
+	fn void _btnCreateHandle(Control* ctl) // @private
 	{
 		Button* this = (Button*)ctl;
 		this._createInternal(this.width, this.height);
@@ -141,49 +177,61 @@ fn void GradDraw.dtor(GradDraw* g) @private
 	}
 
 	// Set back color for button
-	fn void Button.setBackColor(Button* b, uint clr)
+	fn void Button.setBackColor(Button* this, uint clr, bool tintOnHover = false, double hoverIntensity = 0.5)
 	{
-		b.backColor.updateColor(clr);
-		b._fdraw.setData(b.backColor);
-		if ((b._drawMode & 2) != 2) b._drawMode += 2;
-		if (b._isCreated) api_InvalidateRect(b.handle, null, false);
+		this.backColor.updateColor(clr);
+		if (this._dmode != DrawMode.FLAT) {
+			this._fdraw = alloc::new(mem, FlatDraw);
+			this._dmode = DrawMode.FLAT;
+		}
+		double intens = tintOnHover? hoverIntensity: hoverIntensity / 10;
+		this._setDrawData = this._fdraw.setData(clr, tintOnHover, intens);
+		if ((this._drawMode & 2) != 2) this._drawMode += 2;
+		if (this._isCreated) api_InvalidateRect(this.handle, null, false);
 	}
 
 	// Set gradient color for button.
-	fn void Button.setGradientColor(Button* b, uint clr1, uint clr2)
+	fn void Button.setGradientColor(Button* this, uint clr1, uint clr2, 
+									bool tintOnHover = false, double hoverIntensity = 0.5)
 	{
-		b._gdraw.setData(clr1, clr2);
-		if ((b._drawMode & 4) != 4) b._drawMode += 4;
-		if (b._isCreated) api_InvalidateRect(b.handle, null, false);
+		if (this._dmode != DrawMode.GRAD) {
+			this._gdraw = alloc::new(mem, GradDraw);
+			this._dmode = DrawMode.GRAD;
+		}
+		this._gdraw.hoverIntensity = hoverIntensity;
+		this._gdraw.tintOnHover = tintOnHover;
+		this.setGDrawData(clr1, clr2);
+		if ((this._drawMode & 4) != 4) this._drawMode += 4;
+		if (this._isCreated) api_InvalidateRect(this.handle, null, false);
 	}
 
-// End of Public functions
+//#endregion End of Public functions
 
 // Private functions
 
 	// Handling WM_NOTIFY message in order to change fore color & back color.
-	fn Lresult Button.wmNotifyHandler(Button* b, Lparam lpm) @private
+	fn Lresult Button.wmNotifyHandler(Button* this, Lparam lpm) // @private
 	{
 		Lresult ret = CDRF_DODEFAULT;
-		if (b._drawMode) {
+		if (this._drawMode) {
 			NMCustomDraw* nmcd = (NMCustomDraw*)lpm;
-			switch (b._drawMode) {
-				case 1: ret = b.drawTextColor(nmcd); // ForeColor only
-				case 2: ret = b.drawBackColor(nmcd); // BackColor only
+			switch (this._drawMode) {
+				case 1: ret = this.drawTextColor(nmcd); // ForeColor only
+				case 2: ret = this.drawBackColor(nmcd); // BackColor only
 				case 3:
-					b.drawBackColor(nmcd);
-					ret = b.drawTextColor(nmcd);
-				case 4: ret = b.drawGradientBackColor(nmcd);
+					this.drawBackColor(nmcd);
+					ret = this.drawTextColor(nmcd);
+				case 4: ret = this.drawGradientBackColor(nmcd);
 				case 5:
-					b.drawGradientBackColor(nmcd);
-					ret = b.drawTextColor(nmcd);
+					this.drawGradientBackColor(nmcd);
+					ret = this.drawTextColor(nmcd);
 			}
 		}
 		return ret;
 	}
 
 	// Drawing button's text with our foreColor.
-	fn Lresult Button.drawTextColor(Button* this, NMCustomDraw* ncd) @private
+	fn Lresult Button.drawTextColor(Button* this, NMCustomDraw* ncd) // @private
 	{
 		int ret = api_SetBkMode(ncd.hdc, TRANSPARENT);
 		api_SetTextColor(ncd.hdc, this.foreColor.ref);
@@ -195,7 +243,7 @@ fn void GradDraw.dtor(GradDraw* g) @private
 	}
 
 	// Drawing flat color bkg on a button.
-	fn Lresult Button.drawBackColor(Button* b, NMCustomDraw* nmcd) @private
+	fn Lresult Button.drawBackColor(Button* b, NMCustomDraw* nmcd) // @private
 	{
 		switch (nmcd.dwDrawStage) {
 			// case CDDS_PREERASE:	// Note: This return value is critical. Otherwise we don't get below notifications.
@@ -215,27 +263,27 @@ fn void GradDraw.dtor(GradDraw* g) @private
 	}
 
 	// Drawing gradient bkg on a button.
-	fn Lresult Button.drawGradientBackColor(Button* b, NMCustomDraw* nmcd) @private
+	fn Lresult Button.drawGradientBackColor(Button* this, NMCustomDraw* nmcd) // @private
 	{
 		switch (nmcd.dwDrawStage) {
 			// case CDDS_PREERASE:	// Note: This return value is critical. Otherwise we don't get below notifications.
 			// 	return  CDRF_NOTIFYPOSTERASE;
 			case CDDS_PREPAINT:
 				if ((nmcd.uItemState & BTN_CLICKED) == BTN_CLICKED) {
-					b.paintGradientRound(nmcd.hdc, nmcd.rc, b._gdraw.defClr, b._gdraw.hotPen);
+					this.paintGradientRound(nmcd, this._gdraw.defBmp);
 
 				} else if ((nmcd.uItemState & BTN_FOCUSED) == BTN_FOCUSED) {
-					b.paintGradientRound(nmcd.hdc, nmcd.rc, b._gdraw.hotClr, b._gdraw.hotPen);
+					this.paintGradientRound(nmcd, this._gdraw.hotBmp);
 
 				} else {
-					b.paintGradientRound(nmcd.hdc, nmcd.rc, b._gdraw.defClr, b._gdraw.defPen);
+					this.paintGradientRound(nmcd, this._gdraw.defBmp);
 				}
 		}
 		return CDRF_DODEFAULT;
 	}
 
 	// Helper function for flat color button.
-	fn void Button.paintFlatColor(Button* b, NMCustomDraw* nmcd, Hbrush hbr, Hpen pen) @private
+	fn void Button.paintFlatColor(Button* b, NMCustomDraw* nmcd, Hbrush hbr, Hpen pen) // @private
 	{
 		api_SelectObject(nmcd.hdc, (Hgdiobj)hbr);
 		api_SelectObject(nmcd.hdc, (Hgdiobj)pen);
@@ -244,30 +292,121 @@ fn void GradDraw.dtor(GradDraw* g) @private
 	}
 
 	// Helper function for gradient color button.
-	fn void Button.paintGradientRound(Button* b, Hdc dc, Rect rc, GradColor gc, Hpen pen) @private
+	fn void Button.paintGradientRound(Button* this, NMCustomDraw* nmcd, Hbitmap hbmp) // @private
 	{
-		Hbrush gBrush = createGradientBrush(dc, rc, gc.c1, gc.c2);
-		defer api_DeleteObject((Hgdiobj)gBrush);
-		api_SelectObject(dc, (Hgdiobj)pen);
-		api_SelectObject(dc, (Hgdiobj)gBrush);
-		api_RoundRect(dc, rc.left, rc.top, rc.right, rc.bottom, 5, 5);
-		// api_FillPath(dc);
+		GradDraw* grad = this._gdraw;
+		int border = 1;
+		int rf = 6;
+		Rect inset_rc = { 	nmcd.rc.left + border,
+							nmcd.rc.top + border,
+							nmcd.rc.right - border,
+							nmcd.rc.bottom - border,
+						};
+		int width  = inset_rc.right - inset_rc.left;
+		int height = inset_rc.bottom - inset_rc.top;
+		if (grad.clipRgn == null) {
+			grad.clipRgn = api_CreateRoundRectRgn(inset_rc.left, inset_rc.top, 
+													inset_rc.right + 1, inset_rc.bottom + 1,
+													3, 3);
+	
+		}
+		api_SelectClipRgn(nmcd.hdc, grad.clipRgn);
+    	defer api_SelectClipRgn(nmcd.hdc, (Hrgn)null); // reset clip when done
+		if (hbmp != null) {
+			if (grad.memDC == null) grad.memDC = api_CreateCompatibleDC(nmcd.hdc);
+			Hgdiobj old = api_SelectObject(grad.memDC, (Hgdiobj)hbmp);
+			api_BitBlt(nmcd.hdc, inset_rc.left, inset_rc.top, width, height, grad.memDC, 0, 0, SRCCOPY);
+			api_SelectObject(grad.memDC, old);
+			api_SelectClipRgn(nmcd.hdc, (Hrgn)null);
+			Hgdiobj old_pen = api_SelectObject(nmcd.hdc, (Hgdiobj)grad.bPen);
+			Hgdiobj old_brush = api_SelectObject(nmcd.hdc, api_GetStockObject(5)); // NULL_BRUSH
+			api_RoundRect(nmcd.hdc, nmcd.rc.left, nmcd.rc.top, nmcd.rc.right, nmcd.rc.bottom, rf, rf);
+			api_SelectObject(nmcd.hdc, old_brush);
+			api_SelectObject(nmcd.hdc, old_pen);
+		} else {
+			print("hbm is nil");
+		}
 	}
 
 	// Freeing resources used for this button.
-	fn void Button.dtor(Button* this) @private
+	fn void Button.dtor(Button* this) // @private
 	{
 		switch (this._drawMode) {
 			case 2..3: this._fdraw.dtor();
 			case 4..5: this._gdraw.dtor();
 		}
 		this.baseDestroy();		
-		allocator::free(mem, this);
+		alloc::free(mem, this);
+	}
+
+	fn void Button.updateBitmaps(&this) 
+	{
+		if (this._dmode != DrawMode.GRAD) return;
+		GradDraw* grad = this._gdraw;
+		int width = this.width;
+		int height = this.height;
+
+		if (grad.dirty) {
+			if (grad.defBmp != null) api_DeleteObject((Hgdiobj)grad.defBmp);
+			if (grad.hotBmp != null) api_DeleteObject((Hgdiobj)grad.hotBmp);
+
+			grad.defBmp = this.buildGradientBitmap(grad.stColor, grad.enColor);
+			if (grad.tintOnHover) {
+				grad.hotBmp = this.buildGradientBitmap(grad.hoverStColor, grad.hoverEnColor);
+			} else {
+				grad.hotBmp = this.buildGradientBitmap(grad.hoverStColor, grad.hoverEnColor);
+			}
+
+			grad.dirty = false;
+		}
+	}
+
+	fn char lerpu8(char a, char b, double t) @inline 
+	{
+    	return (char)((double)a + ((double)b - (double)a) * t);
+	}
+
+
+	fn Hbitmap Button.buildGradientBitmap(&this, RgbColor start, RgbColor end)
+	{
+		if (this.width <= 0 || this.height <= 0) return (Hbitmap)null;
+
+		BitmapInfo bmi;
+		bmi.bmiHeader.biSize = BitmapInfoHeader::size;
+		bmi.bmiHeader.biWidth = this.width;
+		bmi.bmiHeader.biHeight = -this.height; // top-down DIB
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 32;
+		bmi.bmiHeader.biCompression = BI_RGB;
+
+		uint* bits = null;
+		double row_size = (double)((this.width * 32 + 31) / 32) * 4;
+		uint bits_size = (uint)(row_size * (double)this.height);
+
+		Hbitmap hbm = api_CreateDIBSection((Hdc)null, &bmi, DIB_RGB_COLORS, (void**)&bits, (Handle)null, 0);
+		if (hbm == null || bits == null) {
+			print("null hbitmap");
+			(Hbitmap)null;
+		}
+
+		// Fill pixels: DIB is 0xAARRGGBB, but we set alpha = 0
+		for (int y = 0; y < this.height; y++) {
+			double t = (double)y / (double)(this.height > 1? this.height - 1 : 1);
+
+			char r = lerpu8(start.red, end.red, t);
+			char g = lerpu8(start.green, end.green, t);
+			char b = lerpu8(start.blue, end.blue, t);
+
+			uint color = (uint)r << 16 | (uint)g << 8 | (uint)b; // 0x00RRGGBB
+			uint* row = bits + y * this.width;
+			for (int x = 0; x < this.width; x++) {row[x] = color;}
+		}
+		return hbm;
 	}
 // End of Private functions
 
 
-fn Lresult btnWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult btnWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {
 	
 	// io::printfn("message %s", msg);

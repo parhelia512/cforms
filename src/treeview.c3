@@ -124,7 +124,7 @@ struct TreeNode
 	fn TreeView* newTreeView(Control* parent, int x = 10, int y = 10,
 								int width = 200, int height = 200)
 	{
-		TreeView* this = allocator::new(mem, TreeView);
+		TreeView* this = alloc::new(mem, TreeView);
 		this.kind = ControlType.TREE_VIEW;
 		this.initBase(parent, x, y, width, height, &tvNumber);	
 		this.lineColor = newColor(0x000000);
@@ -136,7 +136,7 @@ struct TreeNode
 
 	fn TreeNode* newTreeNode(String txt, int image_index = -1, int sel_image_index = -1)
 	{
-		TreeNode* this = allocator::new(mem, TreeNode);
+		TreeNode* this = alloc::new(mem, TreeNode);
 		this.text = txt;
 		this.selImageIndex = -sel_image_index;
 		this.imageIndex = image_index;
@@ -150,7 +150,7 @@ struct TreeNode
 	}
 
 	// Create the handle of TreeView
-	fn void _tvCreateHandle(Control* ctl) @private
+	fn void _tvCreateHandle(Control* ctl) // @private
 	{
 		TreeView* this = (TreeView*)ctl;
 		this.setTVStyle();
@@ -272,17 +272,17 @@ struct TreeNode
 	}
 
 	//===========================Private Functions=============================================
-	// fn TreeNode* TreeView.addNode1(TreeView* this, String txt, int img, int selImg) @private
+	// fn TreeNode* TreeView.addNode1(TreeView* this, String txt, int img, int selImg) // @private
 	// {
 	// 	TreeNode* node = newTreeNode(txt, img, selImg);
 	// 	this.addNodeInternal(NodeOps.ADDNODE, node);
 	// 	return node;
 	// }
 
-	macro TreeNode* makeNewNode(nodeOrText, imgIndex, selImgIndex) @private
+	macro TreeNode* makeNewNode(nodeOrText, imgIndex, selImgIndex) // @private
 	{
 		TreeNode* node = null;
-		$switch $typeof(nodeOrText):
+		$switch $Typeof(nodeOrText):
 			$case String: 
 				node = newTreeNode(nodeOrText, imgIndex, selImgIndex);				
 			$case TreeNode*:
@@ -293,7 +293,7 @@ struct TreeNode
 		return node;
 	}
 
-	fn void TreeView._tryAddNode(&this, TreeNode* node) @private
+	fn void TreeView._tryAddNode(&this, TreeNode* node) // @private
 	{
 		node._nodeOp = NodeOps.ADDNODE;
 		node._insAfter = TVI_LAST;
@@ -306,7 +306,7 @@ struct TreeNode
 		if (this.handle) this.addNodeInternal(node);
 	}
 
-	fn void TreeView._tryAddChildNode(&this, TreeNode* parent, TreeNode* child) @private
+	fn void TreeView._tryAddChildNode(&this, TreeNode* parent, TreeNode* child) // @private
 	{
 		if (!parent._inList) {
 			// We don't allow new nodes here.
@@ -332,7 +332,7 @@ struct TreeNode
 	}
 	
 
-	fn void TreeView.addNode2(TreeView* this, TreeNode* node) @private
+	fn void TreeView.addNode2(TreeView* this, TreeNode* node) // @private
 	{
 		// this.addNodeInternal(NodeOps.ADDNODE, node);
 	}
@@ -341,12 +341,12 @@ struct TreeNode
 	<*
 	 * @require this._isCreated
 	 *>
-	fn void TreeView.addChildNode2(TreeView* this, TreeNode* node, TreeNode* parent) @private
+	fn void TreeView.addChildNode2(TreeView* this, TreeNode* node, TreeNode* parent) // @private
 	{
 		// this.addNodeInternal(NodeOps.ADDCHILD, node, parent);
 	}
 
-	fn void TreeView.addChildNodes1(TreeView* this, TreeNode* parent, nodeTexts...) @private
+	fn void TreeView.addChildNodes1(TreeView* this, TreeNode* parent, nodeTexts...) // @private
 	{
 		// foreach (txt: nodeTexts) {
 		// 	String* nodeTxt = (String*)txt;
@@ -355,41 +355,41 @@ struct TreeNode
 		// }
 	}
 
-	fn void TreeView.addChildNodes2(TreeView* this, TreeNode* parent, TreeNode*... nodes) @private
+	fn void TreeView.addChildNodes2(TreeView* this, TreeNode* parent, TreeNode*... nodes) // @private
 	{
 		// foreach (node: nodes) this.addNodeInternal(NodeOps.ADDCHILD, node, parent);
 	}
 
 	fn TreeNode* TreeView.insertNode1(TreeView* this, String nodeTxt, int index, 
-										Allocator using = mem) @private
+										Allocator using = mem) // @private
 	{
 		// TreeNode* node = newTreeNode(nodeTxt);
 		// this.addNodeInternal(NodeOps.INSERTNODE, node, pos: index);
 		return null;
 	}
 
-	fn void TreeView.insertNode2(TreeView* this, TreeNode* node, int index) @private
+	fn void TreeView.insertNode2(TreeView* this, TreeNode* node, int index) // @private
 	{
 		// this.addNodeInternal(NodeOps.INSERTNODE, node, pos: index);
 	}
 
 	fn TreeNode* TreeView.insertChildNode1(TreeView* this, String nodeTxt, TreeNode* parent,
-												int index, Allocator using = mem) @private
+												int index, Allocator using = mem) // @private
 	{
 		// TreeNode* tn = newTreeNode(nodeTxt);
 		// this.addNodeInternal(NodeOps.INSERTCHILD, tn, parent, index);
 		return null;
 	}
 
-	fn void TreeView.insertChildNode2(TreeView* this, TreeNode* node, TreeNode* parent, int index) @private
+	fn void TreeView.insertChildNode2(TreeView* this, TreeNode* node, TreeNode* parent, int index) // @private
 	{
 		// this.addNodeInternal(NodeOps.INSERTCHILD, node, parent, index);
 	}
 
 		// This macro can be used by both TreeView & TreeNode.
-	macro TreeNode* getNodeFromStringOrInt(parent, txtOrIndex) @private
+	macro TreeNode* getNodeFromStringOrInt(parent, txtOrIndex) // @private
 	{
-		$switch $typeof(txtOrIndex):
+		$switch $Typeof(txtOrIndex):
 			$case String:
 				if (parent.nodes.len() > 0) {
 					foreach (node: parent.nodes) {if (node.text == txtOrIndex) return node;}
@@ -404,10 +404,10 @@ struct TreeNode
 	}
 
 	// This macro can be used by both TreeView & TreeNode.
-	macro void deleteNodeFromStringOrInt(parent, txtOrIndex) @private
+	macro void deleteNodeFromStringOrInt(parent, txtOrIndex) // @private
 	{
 		TreeNode* theNode;
-		$switch $typeof(txtOrIndex):
+		$switch $Typeof(txtOrIndex):
 			$case String:
 				if (parent.nodes.len() > 0) {
 					foreach (node: parent.nodes) {
@@ -429,7 +429,7 @@ struct TreeNode
 			$default: print("Unknown type");
 		$endswitch
 		if (theNode) {
-			$switch $typeof(parent):
+			$switch $Typeof(parent):
 				$case TreeView*:
 					api_SendMessage(parent.handle, TVM_DELETEITEM, 0, (Lparam) theNode.handle);
 					parent.nodes.remove(theNode);
@@ -451,11 +451,11 @@ struct TreeNode
 			int indexNum;
 		}
 
-		fn Wparam TreeNode.toWpm(TreeNode* this) @private {return (Wparam)((void*) this);}
-		fn Lparam TreeNode.toLpm(TreeNode* this) @private {return (Lparam)((void*) this);}
+		fn Wparam TreeNode.toWpm(TreeNode* this) {return (Wparam)((void*) this);}
+		fn Lparam TreeNode.toLpm(TreeNode* this) {return (Lparam)((void*) this);}
 
 		// Helper function for adding a child node
-		fn TreeNode* TreeNode.addChildNode1(TreeNode* this, String nodeTxt, Allocator using = mem) @private
+		fn TreeNode* TreeNode.addChildNode1(TreeNode* this, String nodeTxt, Allocator using = mem) // @private
 		{
 			TreeNode* node = newTreeNode(nodeTxt);
 			api_SendMessage(this._treeHwnd, MM_NODE_ADDED, node.toWpm(), this.toLpm());
@@ -463,7 +463,7 @@ struct TreeNode
 		}
 
 		// Helper function for adding a child node
-		fn void TreeNode.addChildNode2(TreeNode* this, TreeNode* node) @private
+		fn void TreeNode.addChildNode2(TreeNode* this, TreeNode* node) // @private
 		{
 			api_SendMessage(this._treeHwnd, MM_NODE_ADDED, node.toWpm(), this.toLpm());
 		}
@@ -471,7 +471,7 @@ struct TreeNode
 		// Add child node node. Parameter nodeOrText can be string or node pointer.
 		macro TreeNode* TreeNode.addChildNode(TreeNode* this, nodeOrText, Allocator using = mem)
 		{
-			$switch $typeof(nodeOrText):
+			$switch $Typeof(nodeOrText):
 				$case String: return this.addChildNode1(nodeOrText, using);
 				$case TreeNode*:
 					this.addChildNode2(nodeOrText);
@@ -485,7 +485,7 @@ struct TreeNode
 		{
 			TreeNode* ret;
 			NodePack np;
-			$switch $typeof(nodeOrText):
+			$switch $Typeof(nodeOrText):
 				$case String:
 					np.node = newTreeNode(nodeOrText);
 					ret = np.node;
@@ -518,7 +518,7 @@ struct TreeNode
 // Private functions
 
 	// Setting control's style bits.
-	fn void TreeView.setTVStyle(TreeView* this) @private
+	fn void TreeView.setTVStyle(TreeView* this) // @private
 	{
 		if (this.noLine) this._style ^= TVS_HASLINES;
 		if (this.noButton) this._style ^= TVS_HASBUTTONS;
@@ -534,7 +534,7 @@ struct TreeNode
 	 * required this._isCreated
 	**/
 	fn void TreeView.addNodeInternal(TreeView* this, TreeNode* node, 
-										TreeNode* pnode = null) @private => @pool()
+										TreeNode* pnode = null) // @private => @pool()
 	{
 		node._isCreated = true;
 		node._treeHwnd = this.handle;
@@ -589,12 +589,12 @@ struct TreeNode
 	}
 
 
-	fn void TreeView.nodeNotifyHandler(TreeView* this, TreeNode* node, String prop, void* data) @private
+	fn void TreeView.nodeNotifyHandler(TreeView* this, TreeNode* node, String prop, void* data) // @private
 	{
 		print("not implemented");
 	}
 
-	fn void TreeNode.destroy(TreeNode* this) @private
+	fn void TreeNode.destroy(TreeNode* this) // @private
 	{
 		// ptf("Node is destroying, node text %s, node count : %s", this.text, this._childCount);
 		if (this._childCount) {foreach (node: this.nodes) { node.destroy();}} // Recursive destruction
@@ -602,24 +602,24 @@ struct TreeNode
 			// ptf("nodes list freed %s", this.text);
 			this.nodes.free(); // Finally free the container too.
 		}
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 
 
 	// Freeing resources used for this TreeView.
-	fn void TreeView.dtor(TreeView* this) @private
+	fn void TreeView.dtor(TreeView* this) // @private
 	{
 		if (this._nodeCount > 0) {
 			foreach (node: this.nodes) { node.destroy();} // Recursive destruction
 		}
 		if (this.nodes.capacity > 0) this.nodes.free();
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult tvWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult tvWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {
 	// io::printfn("message %s", msg);
 	TreeView* this = bitcast(refData, TreeView*);

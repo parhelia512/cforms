@@ -50,7 +50,7 @@ macro bool removeItemFrom(aList, anItem) {
 macro isStrLiteral(x)
 {
 	var $res = false;
-	var $typ = $typeof(x).typeid;
+	var $typ = $Typeof(x).typeid;
 	$if ($typ.kindof == TypeKind.POINTER):
 		var $inner = $typ.inner;
 		$if (($inner.kindof == TypeKind.ARRAY) && ($inner.inner == char.typeid)):
@@ -62,7 +62,7 @@ macro isStrLiteral(x)
 
 macro String makeStringFromAny(value, bool* needToClone)
 {
-	var $Type = $typeof(value);
+	var $Type = $Typeof(value);
 	$switch $Type:
 		$case String: 
 			ptf("make any : %s", value);
@@ -83,7 +83,7 @@ fn void printWchars(Char16* txt, int count)
 	print("");
 }
 
-fn String numeralsToString(any value) @private
+fn String numeralsToString(any value) // @private
 {
 	// DString ds = dstring::tnew_with_capacity(16);  *(int*)value
 	switch (value.type) {
@@ -97,7 +97,7 @@ fn String numeralsToString(any value) @private
 
 }
 
-// fn char[] dbl_to_string(double i) @private { 261023
+// fn char[] dbl_to_string(double i) // @private { 261023
 // 	@pool() {
 // 		DString v = dstring::new_with_capacity(16, mem::temp_allocator());
 // 		v.printf("%f", i);
@@ -116,7 +116,7 @@ macro void log(String msg, ...) // Helper macro to print the debug data
 	x++;
 }
 
-fn double strToDouble(String s) @private
+fn double strToDouble(String s) // @private
 {
 	char* cp;
 	return libc::strtod(&s[0], &cp);
@@ -124,7 +124,7 @@ fn double strToDouble(String s) @private
 
 macro String toStr(value, bool* isAlloc = null)
 {
-	$if $typeof(value) == String:
+	$if $Typeof(value) == String:
 		return *(String*)value;
 	$else
 		if (isAlloc) *isAlloc = true;
@@ -177,7 +177,7 @@ const MB_ERR_INVALID_CHARS = 0x00000008;
 
 // fn Char16* toChar16p(String str, Allocator allocator = mem::temp_allocator()) { 261023
 // 	long size = api_MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, str.len, null, 0);
-// 	Char16* buffer = allocator.alloc((size + 1) * Char16.sizeof)!!;
+// 	Char16* buffer = allocator.alloc((size + 1) * Char16::size)!!;
 // 	api_MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, str.len, buffer, (int)size + 1);
 // 	buffer[size] = 0;
 // 	return buffer[:size];
@@ -210,7 +210,7 @@ fn void printTrackReport(TrackingAllocator tal)
 fn String getExePathTemp()
 {
 	Char16[260] buffer;
-	Dword res = api_GetModuleFileName(null, &buffer[0], 260);
+	Dword res = api_GetModuleFileName((Hmodule)null, &buffer[0], 260);
 	if (res) {
 		return string::from_utf16(mem, buffer[:res])!!;
 	} else {
@@ -222,7 +222,7 @@ fn String getExePathTemp()
 fn String getExePath()
 {
 	Char16[260] buffer;
-	Dword res = api_GetModuleFileName(null, &buffer[0], 260);
+	Dword res = api_GetModuleFileName((Hmodule)null, &buffer[0], 260);
 	if (res) {
 		return string::from_utf16( mem, buffer[:res],)!!;
 	} else {
@@ -230,15 +230,21 @@ fn String getExePath()
 	}	
 }
 
+//Helper function for DeleteObject
+fn void deleteGDIObj(Type obj) <Type> @inline
+{
+	api_DeleteObject((Hgdiobj)obj);
+}
+
 // Get current EXE's directory path. Callee must free the result 
 fn String getExeDir()
 {
 	Char16[260] buffer;
-	Dword res = api_GetModuleFileName(null, &buffer[0], 260);
+	uint res = api_GetModuleFileName((Hmodule)null, &buffer[0], 260);
 	if (res) {		
-		for (int i = res; i >= 0; i--) {
+		for (int i = (int)res; i >= 0; i--) {
 			if (buffer[i] == 92) {
-				res = i;
+				res = (uint)i;
 				break;
 			}
     	}

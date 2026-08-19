@@ -44,6 +44,7 @@ module cforms;
 import std::collections::list;
 
 alias FileList = List{String};
+Hwnd nullHwnd = (Hwnd)null;
 
 // Base class for all dialogs
 struct DialogBase 
@@ -82,7 +83,7 @@ fn FileOpenDialog* newFileOpenDialog(String title = "Select a file",
                                      String initialFolder = "",
                                      String typeFilter = "All files|*.*") 
 {
-    FileOpenDialog *this = allocator::new (mem, FileOpenDialog);
+    FileOpenDialog *this = alloc::new (mem, FileOpenDialog);
     this.title = title;
     this.initFolder = initialFolder;
     this.updateFilter(typeFilter);
@@ -128,7 +129,7 @@ fn FileSaveDialog* newFileSaveDialog(String title = "Save file",
                                      String initialFolder = "",
                                      String typeFilter = "All files|*.*") 
 {
-    FileSaveDialog* this = allocator::new (mem, FileSaveDialog);
+    FileSaveDialog* this = alloc::new (mem, FileSaveDialog);
     this.title = title;
     this.initFolder = initialFolder;
     this.updateFilter(typeFilter);
@@ -140,7 +141,7 @@ fn FileSaveDialog* newFileSaveDialog(String title = "Save file",
 fn FolderBrowserDialog* newFolderBrowserDialog(String title = "Save file",
                                                String initialFolder = "") 
 {
-    FolderBrowserDialog* this = allocator::new (mem, FolderBrowserDialog);
+    FolderBrowserDialog* this = alloc::new (mem, FolderBrowserDialog);
     this.title = title;
     this.initFolder = initialFolder;
     return this;
@@ -149,7 +150,7 @@ fn FolderBrowserDialog* newFolderBrowserDialog(String title = "Save file",
 // This function creates a filter string from the typeFilter string.
 // It needs to replace all the | with \0 and append two \0 at the end.
 // We must free the this.filter when destroy method is called.
-fn void DialogBase.updateFilter(&this, String typeFilter) @private
+fn void DialogBase.updateFilter(&this, String typeFilter) // @private
 {
     if (this.filter.len() > 0) this.filter.clear();
     this.filter.reserve(typeFilter.len + 2);
@@ -165,7 +166,7 @@ fn void FileOpenDialog.deleteFileNames(&this)
 }
 
 
-fn void FileOpenDialog.extractFileNames(&this, Char16 *buffer, int startPos) @private 
+fn void FileOpenDialog.extractFileNames(&this, Char16 *buffer, int startPos) // @private 
 {
     // If user select multiSelection property, we will get all the files names in
     // one array. Since the elements are separated with null chars, we can extract
@@ -190,20 +191,20 @@ fn void FileOpenDialog.extractFileNames(&this, Char16 *buffer, int startPos) @pr
 }
 
 // Show a dialog to user for open a file
-fn bool FileOpenDialog.showDialog(&this, Hwnd hwnd = null) 
+fn bool FileOpenDialog.showDialog(&this, Hwnd hwnd = nullHwnd) 
 {
     return showDialogMacro(this, hwnd);
 }
 
 // Show a dialog to user for selecting a file path to save
-fn bool FileSaveDialog.showDialog(&this, Hwnd hwnd = null) 
+fn bool FileSaveDialog.showDialog(&this, Hwnd hwnd = nullHwnd) 
 {
     return showDialogMacro(this, hwnd);
 }
 
 // Show a dialog to user to select a folder, Make sure to call destroy method
 // after use.
-fn bool FolderBrowserDialog.showDialog(&this, Hwnd hwnd = null) => @pool() 
+fn bool FolderBrowserDialog.showDialog(&this, Hwnd hwnd = nullHwnd) => @pool() 
 {
     Char16[MAX_PATH] buffer;
     Char16 *titleBuff = String.to_temp_utf16(this.title) !!;
@@ -244,19 +245,19 @@ fn void FileOpenDialog.setFilters(&this, String typeFilter)
 }
 
 // Helper macro to manage file open & save dialogs.
-macro showDialogMacro(this, Hwnd hwnd = null) @private => @pool() 
+macro showDialogMacro(this, Hwnd hwnd = nullHwnd) // @private => @pool() 
 {
     OpenFileNameW ofn;
     ofn.hwndOwner = hwnd;
-    usz arr_size = MAX_PATH;
-    $if $typeof(this) == FileOpenDialog : 
+    sz arr_size = MAX_PATH;
+    $if $Typeof(this) == FileOpenDialog : 
         if (this.multiSelection) arr_size = MULTI_SEL_MAX_BUFFER;
     $endif 
     Char16 *buffer = mem::talloc_array(Char16, arr_size);
     Char16 *initDirBuff = this.initFolder == "" ? (Char16 *)0 : String.to_temp_utf16(this.initFolder)!!;
     Char16 *titleBuff = String.to_temp_utf16(this.title)!!;
     Char16 *filBuff = String.to_temp_utf16(this.filter.str_view())!!;
-    ofn.lStructSize = OpenFileNameW.sizeof;
+    ofn.lStructSize = OpenFileNameW::size;
     ofn.lpstrFile = buffer;
     ofn.lpstrFile[0] = '\u0000';
     ofn.lpstrInitialDir = initDirBuff;
@@ -266,7 +267,7 @@ macro showDialogMacro(this, Hwnd hwnd = null) @private => @pool()
     ofn.lpstrDefExt = (Char16 *)0; // Without this, we won't get any extension.
 
     Bool ret = 0;
-    $switch $typeof(this):
+    $switch $Typeof(this):
         $case FileOpenDialog* : 
             ofn.flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
             if (this.multiSelection) ofn.flags |= OFN_ALLOWMULTISELECT | OFN_EXPLORER;
@@ -304,29 +305,29 @@ fn void FileOpenDialog.destroy(&this)
         this.fileNames.free();
     }
     if (this.selectedPath.len > 0) {
-        allocator::free(mem, this.selectedPath.ptr);
+        alloc::free(mem, this.selectedPath.ptr);
     } 
 
     // Free the filter string    
     this.filter.free();
-    allocator::free(mem, this);
+    alloc::free(mem, this);
 }
 
 fn void FileSaveDialog.destroy(&this) 
 {
     if (this.selectedPath.len > 0) {
-        allocator::free(mem, this.selectedPath.ptr);
+        alloc::free(mem, this.selectedPath.ptr);
     }
     // Free the filter string
     this.filter.free();
     
-    allocator::free(mem, this);
+    alloc::free(mem, this);
 }
 
 fn void FolderBrowserDialog.destroy(&this) 
 {
     if (this.selectedPath.len > 0) {
-        allocator::free(mem, this.selectedPath.ptr);
+        alloc::free(mem, this.selectedPath.ptr);
     }
-    allocator::free(mem, this);
+    alloc::free(mem, this);
 }

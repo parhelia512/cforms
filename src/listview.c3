@@ -141,7 +141,7 @@ struct ListViewColumn
 	fn ListView* newListView(Control* parent, int x = 10, int y = 10,
 								int width = 300, int height = 200)
 	{
-		ListView* this = allocator::new(mem, ListView);
+		ListView* this = alloc::new(mem, ListView);
 		this.kind = ControlType.LIST_VIEW;
 		this.initBase(parent, x, y, width, height, &lvNumber);	
 		this.headerFont = this.font;
@@ -236,7 +236,7 @@ struct ListViewColumn
 	// }
 
 	// Create the handle of ListView
-	fn void _lvCreateHandle(Control* ctl) @private
+	fn void _lvCreateHandle(Control* ctl) // @private
 	{
 		ListView* this = (ListView*)ctl;
 		if (this.handle) return;
@@ -264,7 +264,7 @@ struct ListViewColumn
 	macro void ListView.addColumn(ListView* this, textOrCol, width = 100, imgIndx = -1)
 	{
 		ListViewColumn* pLvc = null;
-		$switch $typeof(textOrCol):
+		$switch $Typeof(textOrCol):
 			$case String: 
 				pLvc = newListViewColumn(textOrCol, width, imgIndx);
 			$case ListViewColumn*: 
@@ -318,7 +318,7 @@ struct ListViewColumn
 	macro void ListView.addItem(ListView* this, textOrItemPtr)
 	{
 		ListViewItem* pitem = null;
-		$switch $typeof(textOrItemPtr):
+		$switch $Typeof(textOrItemPtr):
 			$case String: 
 				pitem = newListViewItem(textOrItemPtr);
 			$case ListViewItem*: 
@@ -348,7 +348,7 @@ struct ListViewColumn
 	macro void ListView.addItems(&this, txtOrItems...)
 	{
 		var $item1 = txtOrItems[0];
-		$switch $typeof($item1):
+		$switch $Typeof($item1):
 			$case String: 
 				foreach(item: txtOrItems) {
 					ListViewItem* pitem = newListViewItem(item);
@@ -368,7 +368,7 @@ struct ListViewColumn
 	macro void ListView.addSubItems(ListView* this, item, subitems...)
 	{
 		ListViewItem* plvi = null;
-		$switch $typeof(item): // First find the item if item is a string.
+		$switch $Typeof(item): // First find the item if item is a string.
 			$case String: 
 				foreach(pitem: this.items) {
 					if (pitem.text == item) {
@@ -394,7 +394,7 @@ struct ListViewColumn
 //========================================== Private functions==================================
 
 	// Setting control's style bits.
-	fn void ListView.setLVStyle(ListView* this) @private
+	fn void ListView.setLVStyle(ListView* this) // @private
 	{
 		switch (this.viewStyle) {
             case ListViewStyle.LARGE_ICON: this._style |= LVS_ICON;
@@ -415,7 +415,7 @@ struct ListViewColumn
 	}
 
 	// Setting ListView's Ex styles
-	fn void ListView.setLVExStyle(ListView* this) @private
+	fn void ListView.setLVExStyle(ListView* this) // @private
 	{
 		Dword lvExStyle = 0x0000;
         if (this.showGrid) lvExStyle |= LVS_EX_GRIDLINES;
@@ -427,7 +427,7 @@ struct ListViewColumn
         this.sendMsg(LVM_SETEXTENDEDLISTVIEWSTYLE, 0 , lvExStyle);
 	}
 
-	fn void ListView._tryAddColumn(&this, ListViewColumn* pLvc) @inline @private
+	fn void ListView._tryAddColumn(&this, ListViewColumn* pLvc) @inline // @private
 	{
 		pLvc.index = this._colIndexCounter;			
 		this.columns.push(pLvc);
@@ -435,7 +435,7 @@ struct ListViewColumn
 		this._colIndexCounter += 1;
 	}
 
-	fn void ListView._tryAddItem(&this, ListViewItem* pitem) @inline @private
+	fn void ListView._tryAddItem(&this, ListViewItem* pitem) @inline // @private
 	{
 		this._itemIndexCounter += 1;
 		pitem.index = this._itemIndexCounter;		
@@ -445,7 +445,7 @@ struct ListViewColumn
 
 
 	// Adding column to ListView.
-	fn void ListView._addColumnInternal(ListView* this, ListViewColumn* lvcol) @private
+	fn void ListView._addColumnInternal(ListView* this, ListViewColumn* lvcol) // @private
 	{
 		lvcol.index = this._colIndexCounter;
         LVColumn tagLVC;
@@ -465,7 +465,7 @@ struct ListViewColumn
 	}
 
 	// Adding item to ListView.
-	fn void ListView._addItemInternal(ListView* this, ListViewItem* pitem) @private => @pool()
+	fn void ListView._addItemInternal(ListView* this, ListViewItem* pitem) // @private => @pool()
 	{
 		LVItem tagLVI = {};
         tagLVI.mask = LVIF_TEXT | LVIF_PARAM | LVIF_STATE;
@@ -485,7 +485,7 @@ struct ListViewColumn
 	// Adding subitems to given pitem.
 	fn void ListView._addSubItemInternal(ListView* this, 
 										ListViewItem* pitem, 
-										ListViewSubItem* subitem) @private => @pool()
+										ListViewSubItem* subitem) // @private => @pool()
 	{
         LVItem lvi;
 		Char16* sitem = subitem.text.to_temp_utf16()!!.ptr;
@@ -495,7 +495,7 @@ struct ListViewColumn
         this.sendMsg(LVM_SETITEMTEXTW, pitem.index, &lvi);		
 	}
 
-	fn void ListView._addSubItemsInternal(ListView* this, ListViewItem* pitem) @private => @pool()
+	fn void ListView._addSubItemsInternal(ListView* this, ListViewItem* pitem) // @private => @pool()
 	{
 		foreach (subitem: pitem.subItems) {
 			LVItem lvi;
@@ -507,7 +507,7 @@ struct ListViewColumn
 		}        		
 	}
 
-	macro ListViewSubItem* ListViewItem._createSubItem(&this, sitem) @private
+	macro ListViewSubItem* ListViewItem._createSubItem(&this, sitem) // @private
 	{
 		if (this.subItems.size == 0) this.subItems.init(mem, 8);
 		ListViewSubItem* psi = newListViewSubItem(sitem);	
@@ -517,7 +517,7 @@ struct ListViewColumn
 	}
 
 	// Get the Header handle & subclass it.
-	fn void ListView._setHeaderSubclass(ListView* this) @private
+	fn void ListView._setHeaderSubclass(ListView* this) // @private
 	{
 		this._hdrHwnd = (Hwnd) this.sendMsg(LVM_GETHEADER, 0, 0);
 		api_SetWindowSubclass(this._hdrHwnd, &hdrWndProc, globalSubClsID, bitcast(this, Dwordptr));
@@ -525,7 +525,7 @@ struct ListViewColumn
 	}
 
 	// Some post creation tasks for this listview.
-	fn void ListView._postCreationTasks(ListView* this) @private
+	fn void ListView._postCreationTasks(ListView* this) // @private
 	{
 		if (this.backColor.value != 0xFFFFFF) this.sendMsg(LVM_SETBKCOLOR, 0, this.backColor.ref);
 		if (this.checkBoxLast) {
@@ -540,14 +540,14 @@ struct ListViewColumn
 	}
 
 	// Drawing the header
-	fn Lresult ListView._drawHeader(ListView* this, NMCustomDraw* nmcd) @private
+	fn Lresult ListView._drawHeader(ListView* this, NMCustomDraw* nmcd) // @private
 	{
 		/* Drawing header to beautify with colors and font.
 		 * Windows's own header drawing is white bkg color.
          * But listview itself is white bkg. We can't allow both hdr & listview in white.
          * So, we need to draw it on our own. */
         if (nmcd.dwItemSpec != 0) nmcd.rc.left += 1; // Give room for header divider.
-        ListViewColumn* col = this.columns[nmcd.dwItemSpec]; // Get our column struct
+        ListViewColumn* col = this.columns[(sz)nmcd.dwItemSpec]; // Get our column struct
         api_SetBkMode(nmcd.hdc, TRANSPARENT);
 
         if (nmcd.uItemState & CDIS_SELECTED) {
@@ -576,7 +576,7 @@ struct ListViewColumn
 	}
 
 	// Handling the WM_NOTIFY message from header
-	fn Lresult ListView._headerNotifyHandler(ListView* this, Lparam lpm) @private
+	fn Lresult ListView._headerNotifyHandler(ListView* this, Lparam lpm) // @private
 	{
 		NMHdr* nmh = (NMHdr*) lpm;
 		if (nmh.code == NM_CUSTOMDRAW) {
@@ -589,7 +589,7 @@ struct ListViewColumn
 		return CDRF_DODEFAULT;
 	}
 
-	// fn ListViewItem* ListView._findLvItemStr(&this, String itemTxt) @private
+	// fn ListViewItem* ListView._findLvItemStr(&this, String itemTxt) // @private
 	// {
 	// 	if (this.items.len() > 0) {
 	// 		foreach (item: this.items) {
@@ -599,7 +599,7 @@ struct ListViewColumn
 	// 	return null;
 	// }
 
-	// fn ListViewItem* ListView._findLvItemInt(&this, int indx) @private
+	// fn ListViewItem* ListView._findLvItemInt(&this, int indx) // @private
 	// {
 	// 	if (this.items.len() > 0) {
 	// 		foreach (item: this.items) {
@@ -611,7 +611,7 @@ struct ListViewColumn
 
 	// Helper function for the above macro
 	// fn ListViewColumn* ListView._addColumnStr(ListView* this, String txt,
-	// 										int width = 100, int imgIndx = -1) @private
+	// 										int width = 100, int imgIndx = -1) // @private
 	// {
 	// 	ListViewColumn* lvc = newListViewColumn(txt, width, imgIndx);
 	// 	this._addColumnInternal(lvc);
@@ -620,7 +620,7 @@ struct ListViewColumn
 
 
 	// Helper function for the above macro
-	// fn void ListView.addColumnLvc(ListView* this, ListViewColumn* lvc) @private
+	// fn void ListView.addColumnLvc(ListView* this, ListViewColumn* lvc) // @private
 	// {
 	// 	this._addColumnInternal(lvc);
 	// }
@@ -655,8 +655,8 @@ struct ListViewColumn
 		case LVN_ITEMCHANGED: 
 			LVNMListView* nmlv = (LVNMListView*)lpm;
 			if (nmlv.uChanged & LVIF_STATE) {
-				int nowSelected = (nmlv.uNewState & LVIS_SELECTED);
-				int wasSelected = (nmlv.uOldState & LVIS_SELECTED);
+				uint nowSelected = (nmlv.uNewState & LVIS_SELECTED);
+				uint wasSelected = (nmlv.uOldState & LVIS_SELECTED);
 				if (nowSelected && !wasSelected) {
 					ListViewItem* pitem = this.items[nmlv.iItem];
 					if (this.multiSelection) {
@@ -683,8 +683,8 @@ struct ListViewColumn
 					}
 				}
 			}
-			int state_index = (nmlv.uNewState & LVIS_STATEIMAGEMASK) >> 12;
-			int old_state_index = (nmlv.uOldState & LVIS_STATEIMAGEMASK) >> 12;
+			int state_index = ((int)nmlv.uNewState & LVIS_STATEIMAGEMASK) >> 12;
+			int old_state_index = (int)(nmlv.uOldState & LVIS_STATEIMAGEMASK) >> 12;
 			if (state_index != old_state_index) { // Item checkbox changed 
 				bool is_checked = (state_index == 2); // 2 = checked, 1 = unchecked
 				if (this.items.len()) {                               
@@ -710,7 +710,7 @@ struct ListViewColumn
 				return CDRF_NOTIFYITEMDRAW;
 			} 
 			if (lvcd.nmcd.dwDrawStage == CDDS_ITEMPREPAINT) {
-				ListViewItem* pitem = this.items[lvcd.nmcd.dwItemSpec];
+				ListViewItem* pitem = this.items[(sz)lvcd.nmcd.dwItemSpec];
 				if (pitem._bgdraw) lvcd.clrTextBk = pitem.backColor.ref;
 				if (pitem._fgdraw) lvcd.clrText = pitem.foreColor.ref;
 				return CDRF_NEWFONT; // | CDRF_DODEFAULT;
@@ -720,14 +720,14 @@ struct ListViewColumn
 	}
 
 	// Destructor for ListViewColumn
-	fn void ListViewColumn.destroy(&this) @private
+	fn void ListViewColumn.destroy(&this) // @private
 	{
-		allocator::free(mem, this._wideText);
+		alloc::free(mem, this._wideText);
 		mem::free(this);
 	}
 
 	// Destructor for ListViewItem
-	fn void ListViewItem.destroy(&this) @private
+	fn void ListViewItem.destroy(&this) // @private
 	{
 		if (this.subItems.len()) {
 			foreach(sitem: this.subItems) {free(sitem);}
@@ -736,7 +736,7 @@ struct ListViewColumn
 		free(this);
 	}
 
-	// fn void ListViewSubItem.destroy(&this) @private
+	// fn void ListViewSubItem.destroy(&this) // @private
 	// {
 	// 	// ptf("is owned: %s", this._isOwnedText);
 	// 	// if (this._isOwnedText) this.text.free(mem);
@@ -745,7 +745,7 @@ struct ListViewColumn
 	// }
 
 	// Freeing resources used for this ListView.
-	fn void ListView.dtor(ListView* this) @private
+	fn void ListView.dtor(ListView* this) // @private
 	{
 		if (this._itemIndexCounter > -1) {
 			foreach (item: this.items) {item.destroy();}
@@ -757,12 +757,12 @@ struct ListViewColumn
 		this.items.free();
 		this.selectedItems.free();
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult lvWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult lvWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {
 	ListView* this = bitcast(refData, ListView*);
 	MsgHandlerResult res = this.baseWndProc(hw, msg, wp, lp);	
@@ -789,7 +789,7 @@ fn Lresult lvWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwor
 	return api_DefSubclassProc(hw, msg, wp, lp);
 }
 
-fn Lresult hdrWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult hdrWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	// io::printfn("message %s", msg);
 	ListView* this = bitcast(refData, ListView*);
@@ -800,7 +800,7 @@ fn Lresult hdrWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwo
 		case WM_MOUSEMOVE:
 			Point mp = getMousePoints(lp);
 			HDHitTestInfo hti; hti.pt = mp;
-			this._hotHdrIndex = (int) api_SendMessage(hw, HDM_HITTEST, 0, (Lparam) &hti);
+			this._hotHdrIndex = (Dwordptr) api_SendMessage(hw, HDM_HITTEST, 0, (Lparam) &hti);
 
 		case WM_MOUSELEAVE: 
 			this._hotHdrIndex = -1;

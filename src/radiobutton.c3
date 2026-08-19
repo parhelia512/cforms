@@ -41,7 +41,7 @@ struct RadioButton
 	fn RadioButton* newRadioButton(Control* parent, String text, int x = 10, int y = 10,
 									int width = 0, int height = 0, EventHandler evtFn = null)
 	{
-		RadioButton* this = allocator::new(mem, RadioButton);
+		RadioButton* this = alloc::new(mem, RadioButton);
 		this.kind = ControlType.RADIO_BUTTON;
 		this.initBase(parent, x, y, width, height, &rbNumber, text);	
 		this._textStyle = DT_SINGLELINE | DT_VCENTER | DT_NOCLIP;
@@ -53,7 +53,7 @@ struct RadioButton
 	}
 
 	// Create the handle of RadioButton
-	fn void _rbCreateHandle(Control* ctl) @private
+	fn void _rbCreateHandle(Control* ctl) // @private
 	{
 		RadioButton* this = (RadioButton*)ctl;
 		this.setRBStyle();
@@ -76,7 +76,7 @@ struct RadioButton
 // Private functions
 
 	// Setting control's style bits.
-	fn void RadioButton.setRBStyle(RadioButton* this) @private
+	fn void RadioButton.setRBStyle(RadioButton* this) // @private
 	{
 		if (this.rightAlign) {
 			this._style |= BS_RIGHTBUTTON ;
@@ -86,7 +86,7 @@ struct RadioButton
 		this._bkBrush = this.backColor.getBrush();
 	}
 
-	fn void RadioButton.wmCommandHandler(RadioButton* this, Wparam wpm) @private
+	fn void RadioButton.wmCommandHandler(RadioButton* this, Wparam wpm) // @private
 	{
 		if (hiWord(wpm) == 0) {
 			this.checked = (bool) this.sendMsg(BM_GETCHECK, 0, 0);
@@ -96,7 +96,7 @@ struct RadioButton
 
 
 	// Handling back & fore color changing in WndProc function
-	fn Hbrush RadioButton.colorMsgHandler(RadioButton* this, Wparam wpm) @private
+	fn Hbrush RadioButton.colorMsgHandler(RadioButton* this, Wparam wpm) // @private
 	{
 		Hdc hdc = (Hdc)wpm;
 		api_SetBkColor(hdc, this.backColor.ref);
@@ -106,7 +106,7 @@ struct RadioButton
 		return this._bkBrush;
 	}
 
-	fn Lresult RadioButton.wmNotifyHandler(RadioButton* this, Lparam lp) @private
+	fn Lresult RadioButton.wmNotifyHandler(RadioButton* this, Lparam lp) // @private
 	{
 		NMCustomDraw* nmc = (NMCustomDraw*)lp;
 		switch (nmc.dwDrawStage) {
@@ -128,15 +128,15 @@ struct RadioButton
 	}
 
 	// Freeing resources used for this RadioButton.
-	fn void RadioButton.dtor(RadioButton* this) @private
+	fn void RadioButton.dtor(RadioButton* this) // @private
 	{
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult rbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult rbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {
 	// io::printfn("message %s", msg);
 	RadioButton* this = bitcast(refData, RadioButton*);

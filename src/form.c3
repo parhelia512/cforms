@@ -123,7 +123,7 @@ struct Form
 	fn Form* newForm(String title, int width = 500, int height = 400)
 	{
 		if (!app.isFormReg) initNormalForm();
-		Form* this = allocator::new(mem, Form);
+		Form* this = alloc::new(mem, Form);
 		this.kind = ControlType.NONE;
 		this.name = dstring::new(mem, "Form_");
 		this.name.appendf("%d", frmNumber);
@@ -148,7 +148,7 @@ struct Form
 		return this;
 	}
 
-	fn void Form.createHandle(&this) @private
+	fn void Form.createHandle(&this) // @private
 	{
 		this.setStyle();
 		this.setPosition();
@@ -170,6 +170,7 @@ struct Form
 		} else {
 			ptf("Failed to create Form handle! Error code: %d", api_GetLastError());
 		}
+		ptf("frm bk ref %d", this.backColor.value);
 	}
 
 	fn void Form.show(&this)
@@ -191,13 +192,15 @@ struct Form
 			app.mainLoopOn = true;
 			this._isMainWindow = true;
 			Msg pMsg; 
-			while (api_GetMessage(&pMsg, null, 0, 0) != 0) {
+			while (api_GetMessage(&pMsg, (Hwnd)null, 0, 0) != 0) {
 				api_TranslateMessage(&pMsg);
 				api_DispatchMessage(&pMsg);
 			}
 		}
 		app.finalize(); 
 	}
+
+	fn void Form.close(&this) { api_DestroyWindow(this.handle);}
 
 	fn void Form.setBackColor(&this, uint clr)
 	{
@@ -239,18 +242,18 @@ struct Form
 // End Public Functions
 
 // Private Functions
-	fn void registerClass() @private
+	fn void registerClass() // @private
 	{		
 		WndClassEx wc;
-		wc.cbSize = WndClassEx.sizeof;
+		wc.cbSize = WndClassEx::size;
 		wc.style = CS_OWNDC; // CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 		wc.lpfnWndProc = &window_proc;
 		wc.cbClsExtra = 0;
 		wc.cbWndExtra = 0;
 		wc.hInstance = app.hins;
-		wc.hIcon = api_LoadIcon(null, IDI_APP);
-		wc.hCursor = api_LoadCursor(null, IDC_ARROW);
-		wc.hbrBackground = (Hbrush)api_GetStockObject(5); //api_CreateSolidBrush(app.defWinColor.ref); //cast(Hbrush) (cast(uintptr) Color_Window + 1)
+		wc.hIcon = api_LoadIcon(nullHinst, IDI_APP);
+		wc.hCursor = api_LoadCursor(nullHinst, IDC_ARROW);
+		wc.hbrBackground = (Hbrush)api_CreateSolidBrush(app.defWinColor.ref); //cast(Hbrush) (cast(uintptr) Color_Window + 1)
 		wc.lpszMenuName = (Lpcwstr)0;
 		wc.lpszClassName = &className[0];
 		short x = api_RegisterClassEx(&wc);
@@ -258,7 +261,7 @@ struct Form
 		// ptf("wm MM_CLOSE_MSGFORM %d", MM_CLOSE_MSGFORM);
 	}
 
-	fn void Form.setStyle(&this) @private
+	fn void Form.setStyle(&this) // @private
 	{
 		switch (this.formStyle) {
 			case FormStyle.FIXED_3D:
@@ -303,7 +306,7 @@ struct Form
 		this._bkBrush = api_CreateSolidBrush(this.backColor.ref);
 	}
 
-	fn void Form.setPosition(&this) @private
+	fn void Form.setPosition(&this) // @private
 	{
 		switch (this.formPos) {
 			case CENTER:
@@ -326,7 +329,7 @@ struct Form
 		}
 	}
 
-	fn void Form.setBackColorInternal(&this, Hdc hdc) @private
+	fn void Form.setBackColorInternal(&this, Hdc hdc) // @private
 	{
 		Rect rc = this.clientRect();
 		// defer(api_DeleteObject((Hgdiobj)hbr));
@@ -342,7 +345,7 @@ struct Form
 
 	
 
-	fn void Form.formShownHandler(&this) @private
+	fn void Form.formShownHandler(&this) // @private
 	{
 		// print("show window");
 		if (!this._isLoaded) {
@@ -351,7 +354,7 @@ struct Form
 		}
 	}
 
-	fn void Form.formActivateHandler(&this, Wparam wp) @private
+	fn void Form.formActivateHandler(&this, Wparam wp) // @private
 	{
 		if (this.onActivate || this.onDeActivate) {
 			bool flag = (bool) wp;
@@ -363,7 +366,7 @@ struct Form
 		}
 	}
 
-	fn Lresult Form.formSizingHandler(&this, uint msg, Wparam wp, Lparam lp) @private
+	fn Lresult Form.formSizingHandler(&this, uint msg, Wparam wp, Lparam lp) // @private
 	{
 		this._isSizing = true;
 		SizeEventArgs sea = newSizeEventArgs(msg, wp, lp);
@@ -376,7 +379,7 @@ struct Form
 		return 0;
 	}
 
-	fn Lresult Form.formSizedHandler(&this, uint msg, Wparam wp, Lparam lp) @private
+	fn Lresult Form.formSizedHandler(&this, uint msg, Wparam wp, Lparam lp) // @private
 	{
 		this._isSizing = false;
 		if (this.onSized) {
@@ -387,7 +390,7 @@ struct Form
    		return 0;
 	}
 
-	fn Lresult Form.formMovingHandler(&this, Lparam lp) @private
+	fn Lresult Form.formMovingHandler(&this, Lparam lp) // @private
 	{
 		Rect rct = *(Rect*)lp;
 		this.xpos = rct.left;
@@ -399,7 +402,7 @@ struct Form
    		return 0;
 	}
 
-	fn Lresult Form.formMovedHandler(&this, Lparam lp) @private
+	fn Lresult Form.formMovedHandler(&this, Lparam lp) // @private
 	{
 		this.xpos = xFromLparam(lp);
 		this.ypos = yFromLparam(lp);
@@ -407,7 +410,7 @@ struct Form
    		return 0;
 	}
 
-	fn void Form.formSysCommandHandler(&this, Wparam wp) @private
+	fn void Form.formSysCommandHandler(&this, Wparam wp) // @private
 	{
 		uint uMsg = (uint) (wp & 0xFFF0);
 		switch (uMsg) {
@@ -417,7 +420,7 @@ struct Form
 		}
 	}
 
-	fn void Form.formCloseHandler(&this) @private
+	fn void Form.formCloseHandler(&this) // @private
 	{		
 		if (this.onClosing) {
 			EventArgs ea;
@@ -438,13 +441,13 @@ struct Form
 		if (tm && tm.onTick) tm.onTick(this, &gea);
 	}
 
-	fn void Form.formDestroyHandler(&this) @private
+	fn void Form.formDestroyHandler(&this) // @private
 	{
 		if (this.onClosed) this.onClosed(this, &gea);
 		this.dtor();
 	}
 
-	fn MenuItem* Form.getMenuFromHmenu(&this, uint hmenu) @private
+	fn MenuItem* Form.getMenuFromHmenu(&this, uint hmenu) // @private
 	{
 		foreach (mi: this._menuItemList) {
 			if (mi.menuID == hmenu) return mi.pMenuItem;
@@ -485,8 +488,8 @@ struct Form
 			defer api_ReleaseDC(hw, hdc);
 			Size size;
 			api_GetTextExtentPoint32(hdc, mi._wideText, mi.text.len, &size);
-			pmi.itemWidth = size.cx + 3;
-			pmi.itemHeight = size.cy;
+			pmi.itemWidth = (uint)size.cx + 3;
+			pmi.itemHeight = (uint)size.cy;
 		} else {
 			pmi.itemWidth = 100;
 			pmi.itemHeight = 25;
@@ -544,7 +547,7 @@ struct Form
 	//fault MenuEventError {MED_NOT_FOUND}
 
 	// This will execute when a Form destroyed
-	fn void Form.dtor(Form* this) @private
+	fn void Form.dtor(Form* this) // @private
 	{
 		if (this._bkBrush) {
 			api_DeleteObject((Hgdiobj)this._bkBrush);
@@ -571,14 +574,14 @@ struct Form
 		if (this._isMainWindow) { 
 			api_PostQuitMessage(0);
 		}
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 		
 		// $echo("Compile check");
 	}
 
 // End Private Functions
 
-fn Lresult window_proc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
+fn Lresult window_proc(Hwnd hw, uint msg, Wparam wp, Lparam lp) // @private
 {
 	// log("Window Message %s", msg);
 	Form* this = bitcast(api_GetWindowLongPtr(hw, GWLP_USERDATA), Form*);
@@ -640,10 +643,16 @@ fn Lresult window_proc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
 		case MM_THREAD_MSG:
 		 	if (this.onThreadMsg) this.onThreadMsg(wp, lp);
 
-		case WM_ERASEBKGND :
+		/* case WM_ERASEBKGND :
 			this.setBackColorInternal((Hdc)wp);
-			return 1;
+			return 1; */
 	// end of commons
+
+		/* case WM_CTLCOLORBTN:
+			print("653");
+			api_SetBkMode((Hdc)wp, TRANSPARENT);
+			
+			return ( Lresult)api_CreateSolidBrush(this.backColor.ref);*/
 
 		case WM_NOTIFY:			
 			NMHdr* nmh = (NMHdr*)lp;

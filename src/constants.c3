@@ -416,13 +416,13 @@ module cforms;
 		const LVIF_PARAM = 4;
 		const LVIF_STATE = 8;
 
-		const LVIS_FOCUSED = 1;
-		const LVIS_SELECTED = 2;
-		const LVIS_CUT = 4;
-		const LVIS_DROPHILITED = 8;
-		const LVIS_ACTIVATING = 32;
-		const LVIS_OVERLAYMASK = 3840;
-		const LVIS_STATEIMAGEMASK = 61440;
+		const uint LVIS_FOCUSED = 1;
+		const uint LVIS_SELECTED = 2;
+		const uint LVIS_CUT = 4;
+		const uint LVIS_DROPHILITED = 8;
+		const uint LVIS_ACTIVATING = 32;
+		const uint LVIS_OVERLAYMASK = 3840;
+		const uint LVIS_STATEIMAGEMASK = 61440;
 
 		
 

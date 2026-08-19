@@ -71,7 +71,7 @@ struct ListBox
 	fn ListBox* newListBox(Control* parent, int x = 10, int y = 10,
 							int width = 150, int height = 150)
 	{
-		ListBox* this = allocator::new(mem, ListBox);
+		ListBox* this = alloc::new(mem, ListBox);
 		this.kind = ControlType.LIST_BOX;
 		this.initBase(parent, x, y, width, height, &lbxNumber);	
 		this._dummyIndex = -1;
@@ -82,7 +82,7 @@ struct ListBox
 	}
 
 	// Create the handle of ListBox
-	fn void _lbxCreateHandle(Control* ctl) @private
+	fn void _lbxCreateHandle(Control* ctl) // @private
 	{
 		ListBox* this = (ListBox*)ctl;
 		this.setLbxStyle();
@@ -225,7 +225,7 @@ struct ListBox
 // Private functions
 
 	// Setting control's style bits.
-	fn void ListBox.setLbxStyle(ListBox* this) @private
+	fn void ListBox.setLbxStyle(ListBox* this) // @private
 	{
 		if (this.hasSort) this._style |= LBS_SORT;
 		if (this.multiSelection) this._style |= LBS_EXTENDEDSEL | LBS_MULTIPLESEL;
@@ -237,7 +237,7 @@ struct ListBox
 		this._bkBrush = this.backColor.getBrush();
 	}
 
-	fn void ListBox.manageItems(ListBox* this) @private
+	fn void ListBox.manageItems(ListBox* this) // @private
 	{
 		if (this.items.len() > 0)  {// We need to add those items to list box
             foreach (item: this.items) {
@@ -250,7 +250,7 @@ struct ListBox
 	}
 
 	// Internal function to clear all items
-	fn void ListBox.clearAllInternal(ListBox* this) @private @inline
+	fn void ListBox.clearAllInternal(ListBox* this) // @private @inline
 	{
 		this.sendMsg(LB_RESETCONTENT, 0, 0);
 		api_UpdateWindow(this.handle);
@@ -259,7 +259,7 @@ struct ListBox
 	//fault ArrayResult {EMPTY_ARRAY}
 
 	// Internal function to get an item. Caller must free the return value
-	fn String ListBox.getItemInternal(ListBox* this, int index) @private
+	fn String ListBox.getItemInternal(ListBox* this, int index) // @private
 	{
 		int sLen = (int)this.sendMsg(LB_GETTEXTLEN, index, 0);
 		if (sLen) {
@@ -274,7 +274,7 @@ struct ListBox
 	}
 
 	// Internal function for handling wm_command message
-	fn void ListBox.wmCommandHandler(ListBox* this, Wparam wpm) @private
+	fn void ListBox.wmCommandHandler(ListBox* this, Wparam wpm) // @private
 	{
 		Word ncode = hiWord(wpm);
 		switch (ncode) {
@@ -288,7 +288,7 @@ struct ListBox
 
 
 	// Handling back & fore color changing in WndProc function
-	fn Hbrush ListBox.colorMsgHandler(ListBox* this, Wparam wpm) @private
+	fn Hbrush ListBox.colorMsgHandler(ListBox* this, Wparam wpm) // @private
 	{
 		Hdc hdc = (Hdc)wpm;
 		api_SetBkMode(hdc, TRANSPARENT);
@@ -299,17 +299,17 @@ struct ListBox
 
 
 	// Freeing resources used for this ListBox.
-	fn void ListBox.dtor(ListBox* this) @private
+	fn void ListBox.dtor(ListBox* this) // @private
 	{
 		this.selectedIndices.free();
 		this.items.free();
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult lbxWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult lbxWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	// io::printfn("message %s", msg);
 	ListBox* this = bitcast(refData, ListBox*);

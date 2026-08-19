@@ -46,7 +46,7 @@ struct ContextMenu
 // Set custDraw to true, if you do not want system style. 
 fn ContextMenu* newContextMenu(bool custDraw = false)
 {
-	ContextMenu* this = allocator::new(mem, ContextMenu);
+	ContextMenu* this = alloc::new(mem, ContextMenu);
 	this.handle = api_CreatePopupMenu();	
 	this.width = 120;
 	this.height = 25;
@@ -89,7 +89,7 @@ fn void ContextMenu.addMenus(&this, String... menuNames)
 	}	
 }
 
-fn void MenuItem.insertCmenuInternal(&this, uint draw_type) @private
+fn void MenuItem.insertCmenuInternal(&this, uint draw_type) // @private
 {
 	if (this._menuList.len() > 0) {		
 		foreach(menu: this._menuList) {menu.insertCmenuInternal(draw_type);}		
@@ -109,7 +109,7 @@ fn void ContextMenu.createHandle(&this)
 		if (!this.nativeStyle) {
 			menu_draw_type = MF_OWNERDRAW;
 			// Let's setup the width & height for each menu item text.
-			Hdc hdcMem = api_CreateCompatibleDC(null);
+			Hdc hdcMem = api_CreateCompatibleDC((Hdc)null);
 			defer api_DeleteDC(hdcMem);
 			Hgdiobj oldfont = api_SelectObject(hdcMem, (Hgdiobj)this.font.handle);
 			defer api_SelectObject(hdcMem, oldfont);
@@ -128,7 +128,7 @@ fn void ContextMenu.createHandle(&this)
 }
 
 
-fn MenuItem* ContextMenu.getMenuItem(&this, uint id) @private
+fn MenuItem* ContextMenu.getMenuItem(&this, uint id) // @private
 {	
 	// ptf("given id: %d", id);
 	if (this._menuList.len() > 0) {
@@ -195,7 +195,7 @@ fn void ContextMenu.setItemTag(&this,  String menuName, any tagItem)
 <*
  @require this.parent || this._trayParent && this._menuList.len() :"Either parent is null or no menu items added"
 *>
-fn void ContextMenu.showMenu(&this, Lparam lpm) @private
+fn void ContextMenu.showMenu(&this, Lparam lpm) // @private
 {	
 	/*===================================================================================
 	Let's first create the message-only-window for this menu. These are lightweight windows.
@@ -205,7 +205,7 @@ fn void ContextMenu.showMenu(&this, Lparam lpm) @private
 	this.createMessageWindow();
 	defer {
 		api_DestroyWindow(this._dummyHwnd);
-		this._dummyHwnd = null;
+		this._dummyHwnd = nullHwnd;
 	}		
 	if (!this._menuInserted) this.createHandle();
 	Point pt;
@@ -248,10 +248,10 @@ fn void ContextMenu.showMenu(&this, Lparam lpm) @private
 }
 
 // Registering message-only window class for context menu.
-fn void registerCmenuMessageWindow() @private
+fn void registerCmenuMessageWindow() // @private
 {
 	WndClassEx wc;
-	wc.cbSize = WndClassEx.sizeof;
+	wc.cbSize = WndClassEx::size;
 	wc.lpfnWndProc = &cmenuWndProc;
 	wc.hInstance = app.hins;
 	wc.lpszClassName = &cmenuMsgWinClass[0];
@@ -260,15 +260,15 @@ fn void registerCmenuMessageWindow() @private
 }
 
 // Creating message only window for handling menu messages.
-fn void ContextMenu.createMessageWindow(&this) @private
+fn void ContextMenu.createMessageWindow(&this) // @private
 {	
-	this._dummyHwnd = api_CreateWindowEx(0, &cmenuMsgWinClass[0], null, 0, 0, 0, 0, 0, HWND_MESSAGE, null, app.hins, null);    
+	this._dummyHwnd = api_CreateWindowEx(0, &cmenuMsgWinClass[0], null, 0, 0, 0, 0, 0, HWND_MESSAGE, (Hmenu)null, app.hins, (Pvoid)null);    
     api_SetWindowLongPtr(this._dummyHwnd, GWLP_USERDATA, bitcast(this, Longptr));
 	if (!this.font.handle) this.font.createHandle();
 	// ptf("Cmenu message only win handle %d", this._dummyHwnd);
 }
 
-fn void ContextMenu.destroy(&this) @private
+fn void ContextMenu.destroy(&this) // @private
 {
 	/*====================================================================	
 	When a control is enabled it's context menu, it is responsible...
@@ -286,11 +286,11 @@ fn void ContextMenu.destroy(&this) @private
 	api_DeleteObject((Hgdiobj)this._borderBrush);
 	api_DeleteObject((Hgdiobj)this._grayBrush);
 	api_DestroyMenu(this.handle);
-	allocator::free(mem, this);
+	alloc::free(mem, this);
 	// print("Context menu struct destroyed");
 }
 
-fn Lresult cmenuWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
+fn Lresult cmenuWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp) // @private
 {	
 	// log("cmenu wnd proc %d", msg);
 	switch (msg) {
@@ -300,8 +300,8 @@ fn Lresult cmenuWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
 		case WM_MEASUREITEM:
 			ContextMenu* this = bitcast(api_GetWindowLongPtr(hw, GWLP_USERDATA), ContextMenu*);
 			MeasureItemStruct* pmi = (MeasureItemStruct*)lp;
-			pmi.itemWidth = this.width + 20;
-			pmi.itemHeight = this.height;
+			pmi.itemWidth = (uint)this.width + 20;
+			pmi.itemHeight = (uint)this.height;
 			return 1;
 
     	case WM_DRAWITEM:
@@ -358,7 +358,7 @@ fn Lresult cmenuWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
 			int idNum = (int) loWord(wp);
 			Hmenu hMenu = (Hmenu) lp;
 			if (hMenu && idNum > 0) {
-				MenuItem* menu = this.getMenuItem(idNum);
+				MenuItem* menu = this.getMenuItem((uint)idNum);
 				// ptf("menu text %s, onClick %d", menu.text, (int)(uptr)menu.onClick);
 				if (menu && menu._isEnabled) {
 					if (menu.onFocus) menu.onFocus(menu, &gea);

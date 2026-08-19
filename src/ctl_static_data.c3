@@ -125,66 +125,66 @@ enum ControlType : int ( String prefix,
 	                    Dword wstyle,
 	                    Dword wexStyle)
 { 
-    NONE = {"Form_", WCNFORM, 0, {NONE, NO_FGC, NO_TXT, NO_FONT}, 0, 0},
+    NONE {"Form_", WCNFORM, 0, {NONE, NO_FGC, NO_TXT, NO_FONT}, 0, 0},
 
-    BUTTON = {"Button_", WCNBUTTON, 1, 
+    BUTTON {"Button_", WCNBUTTON, 1, 
                 {NONE, NO_FGC, TXTABLE, FONTABLE}, WSTYLE_BUTTON, 0},
 
-    CALENDAR = {"Calendar_", WCNCALENDAR, 2, 
+    CALENDAR {"Calendar_", WCNCALENDAR, 2, 
                 {NONE, NO_FGC, NO_TXT, NO_FONT}, WSTYLE_CALENDAR, 0},
 
-    CHECK_BOX = {"CheckBox_", WCNBUTTON, 3, 
+    CHECK_BOX {"CheckBox_", WCNBUTTON, 3, 
                 {INHERIT_BGC, BLK_FGC, TXTABLE, FONTABLE}, 
                 WSTYLE_CHECK_BOX, WXSTYLE_CHECK_BOX},
 
-    COMBO_BOX = {"ComboBox_", WCNCOMBO, 4, 
+    COMBO_BOX {"ComboBox_", WCNCOMBO, 4, 
                 {WHITE_BGC, BLK_FGC, TXTABLE, FONTABLE},
                 WSTYLE_COMBO_BOX, WXSTYLE_COMBO_BOX},
 
-    DATE_TIME_PICKER = {"DateTimePicker_", WCNDTP, 5, 
+    DATE_TIME_PICKER {"DateTimePicker_", WCNDTP, 5, 
                         {WHITE_BGC, BLK_FGC, TXTABLE, FONTABLE},
                         WSTYLE_DTP, WXSTYLE_DTP},
 
-    GROUP_BOX = {"GroupBox_", WCNBUTTON, 6, 
+    GROUP_BOX {"GroupBox_", WCNBUTTON, 6, 
                 {INHERIT_BGC, BLK_FGC, TXTABLE, FONTABLE},
                 WSTYLE_GB, WS_EX_CONTROLPARENT },
 
-    LABEL = {"Label_", WCNSTATIC, 7, 
+    LABEL {"Label_", WCNSTATIC, 7, 
             {INHERIT_BGC, BLK_FGC, TXTABLE, FONTABLE},
              WSTYLE_LABEL, 0},
 
-    LIST_BOX = {"ListBox_", WCNLISTBOX, 9, 
+    LIST_BOX {"ListBox_", WCNLISTBOX, 9, 
                 {WHITE_BGC, BLK_FGC, NO_TXT, FONTABLE},
                 WSTYLE_LIST_BOX, 0},
 
-    LIST_VIEW = {"ListView_", WCNLISTVIEW, 9, 
+    LIST_VIEW {"ListView_", WCNLISTVIEW, 9, 
                 {WHITE_BGC, BLK_FGC, NO_TXT, FONTABLE},
                  WSTYLE_LIST_VIEW, 0},
 
-    NUM_PICKER = {"NumberPicker_", 
+    NUM_PICKER {"NumberPicker_", 
                     WCNNUMPICK, 10,
                     {WHITE_BGC, BLK_FGC, TXTABLE, FONTABLE},
                     WSTYLE_NUM_PICK, 0},
 
-    PICTURE_BOX = {"PictureBox_", 
+    PICTURE_BOX {"PictureBox_", 
                     WCNPICTUREBOX, 11,
                     {NONE, NO_FGC, NO_TXT, NO_FONT}, COMM_CTRL_STYLES, 0},
 
-    PROGRESS_BAR = {"ProgressBar_", 
+    PROGRESS_BAR {"ProgressBar_", 
                      WCNPROGRESSBAR, 12,
                     {NONE, BLK_FGC, TXTABLE, FONTABLE}, WSTYLE_PGB, WS_EX_STATICEDGE},   
 
-    RADIO_BUTTON = {"RadioButton_", WCNBUTTON, 13, 
+    RADIO_BUTTON {"RadioButton_", WCNBUTTON, 13, 
                     {INHERIT_BGC, BLK_FGC, TXTABLE, FONTABLE}, WSTYLE_RADIO, 0}, 
 
-    TEXT_BOX = {"TextBox_", WCNEDIT, 14, 
+    TEXT_BOX {"TextBox_", WCNEDIT, 14, 
                 {WHITE_BGC, BLK_FGC, TXTABLE, FONTABLE}, WSTYLE_TB, WXSTYLE_TB},
 
-    TRACK_BAR = {"TrackBar_", 
+    TRACK_BAR {"TrackBar_", 
                     WCNTRACKBAR, 15,
                     {INHERIT_BGC, NO_FGC, NO_TXT, NO_FONT}, WSTYLE_TKBAR, 0},
 
-    TREE_VIEW = {"TreeView_", 
+    TREE_VIEW {"TreeView_", 
                     WCNTREEVIEW, 16,
                     {WHITE_BGC, BLK_FGC, NO_TXT, FONTABLE}, WSTYLE_TV, 0}
 }

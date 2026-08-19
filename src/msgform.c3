@@ -58,7 +58,7 @@ struct MessageForm
 fn MessageForm* newMessageForm(MessageHandler pFunc, bool makeTray = false, bool autoc = true)
 {
     if (!app.isMsgFormReg) initMsgForm();
-    MessageForm* this = allocator::new(mem, MessageForm);
+    MessageForm* this = alloc::new(mem, MessageForm);
     this.msgHandler = pFunc;
     this._isActive = true;
     this._timerList.init(mem, 0);
@@ -87,14 +87,14 @@ fn void MessageForm.addTrayIcon(&this, String trayTip = "cforms Message-Only For
 fn void MessageForm.createHandle(&this)
 {
     this.handle = api_CreateWindowEx(0, &mfclass[0], null, 0, 0, 0, 0, 0, 
-                                        HWND_MESSAGE, null, app.hins, null);    
+                                        HWND_MESSAGE, (Hmenu)null, app.hins, (Pvoid)null);    
     api_SetWindowLongPtr(this.handle, GWLP_USERDATA, bitcast(this, Longptr));
 }
 
 fn void MessageForm.startListening(&this)
 {
     Msg pMsg; 
-    while (api_GetMessage(&pMsg, null, 0, 0)) {
+    while (api_GetMessage(&pMsg, (Hwnd)null, 0, 0)) {
         api_TranslateMessage(&pMsg);
         api_DispatchMessage(&pMsg);
     }
@@ -151,7 +151,7 @@ fn ulong? MessageForm.removeHotKey(&this, int hkeyid)
         foreach (i, hki: this._hkeyList) {
             if (hki.hkid == hkeyid) {
                 api_UnregisterHotKey(this.handle, hki.hkid);
-                return i;
+                return (ulong)i;
             }
         }
     }
@@ -165,7 +165,7 @@ fn void MessageForm.removeHotKeys(&this, int[] hkids)
         if (catch err = index) {
             print("Hotkey ID not found");
         }
-        this._hkeyList.remove_at(index)!!;
+        this._hkeyList.remove_at((sz)index)!!;
     }
 }
 
@@ -196,13 +196,14 @@ fn Timer* MessageForm.getTimer(&this, Uintptr tid)
 fn ulong? MessageForm.getTimerIndex(&this, Uintptr tid)
 {
     foreach (i, tmr: this._timerList) {
-        if (tmr.idNum == tid) {return i;}
+        if (tmr.idNum == tid) {return (ulong)i;}
     }
     return TIMER_INDEX_NOTFOUND~;
 }
 
 fn void MessageForm.destroy(&this)
 {
+    
     if (this._isActive) {
         if (!this._noTray && this.tray) {
             this.tray.destroy();
@@ -218,13 +219,13 @@ fn void MessageForm.destroy(&this)
         this._timerList.free();
         this._hkeyList.free();
         this._isActive = false;
-        allocator::free(mem, this);
+        alloc::free(mem, this);
         print("MessageForm destroyed...");
     }
 }
 
 
-fn Lresult msgform_wndproc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
+fn Lresult msgform_wndproc(Hwnd hw, uint msg, Wparam wp, Lparam lp) // @private
 {
     // ptf("MsgForm messages %d", msg);
     switch (msg) {
@@ -241,6 +242,7 @@ fn Lresult msgform_wndproc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
 
         case WM_DESTROY:
         case MM_CLOSE_MSGFORM:
+            // print("Destroying MessageForm...");
             api_PostQuitMessage(0);
             return 0;
 
@@ -260,7 +262,7 @@ fn Lresult msgform_wndproc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
             MessageForm* this = bitcast(api_GetWindowLongPtr(hw, GWLP_USERDATA), MessageForm*);
             ulong? tmindex = this.getTimerIndex((Uintptr)wp);
             if (catch err = tmindex) {print("Timer index not found!");}
-            this._timerList.remove_at(tmindex)!!;
+            this._timerList.remove_at((sz)tmindex)!!;
             return 0;
 
         default:

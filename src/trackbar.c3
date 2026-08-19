@@ -108,7 +108,7 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 								int width = 200, int height = 35,
 								EventHandler evtFn = null)
 	{
-		TrackBar* this = allocator::new(mem, TrackBar);
+		TrackBar* this = alloc::new(mem, TrackBar);
 		this.kind = ControlType.TRACK_BAR;
 		this.initBase(parent, x, y, width, height, &tkbNumber);	
 		this.minRange = 0;
@@ -132,7 +132,7 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 	}
 
 	// Create the handle of TrackBar
-	fn void _tkbCreateHandle(Control* ctl) @private
+	fn void _tkbCreateHandle(Control* ctl) // @private
 	{
 		TrackBar* this = (TrackBar*)ctl;
 		this.setTKBStyle();
@@ -155,7 +155,7 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 
 	macro void TrackBar.setBackColor(TrackBar* this, clr)
 	{
-		$switch $typeof(clr):
+		$switch $Typeof(clr):
 			$case Color:
 				this.backColor = clr;
 			$case uint:
@@ -179,7 +179,7 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 // Private functions
 
 	// Setting control's style bits.
-	fn void TrackBar.setTKBStyle(TrackBar* this) @private
+	fn void TrackBar.setTKBStyle(TrackBar* this) // @private
 	{
 		if (this.vertical) {
 			this._style |= TBS_VERT;
@@ -209,13 +209,13 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 
 	}
 
-	fn void TrackBar.prepareForCustDraw(TrackBar* this) @private
+	fn void TrackBar.prepareForCustDraw(TrackBar* this) // @private
 	{
 		this._chanPen = api_CreatePen(PS_SOLID, 1, this.channelColor.ref);
         this._ticPen = api_CreatePen(PS_SOLID, this.ticWidth, this.ticColor.ref);
 	}
 
-	fn void TrackBar.sendInitialMessages(TrackBar* this) @private
+	fn void TrackBar.sendInitialMessages(TrackBar* this) // @private
 	{
 		if (this.reversed) {
 			this.sendMsg(TBM_SETRANGEMIN, 1, (this.maxRange * -1));
@@ -230,7 +230,7 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 		this.sendMsg(TBM_SETLINESIZE, 0, this.lineSize);
 	}
 
-	fn void TrackBar.calculateTics(TrackBar* this) @private
+	fn void TrackBar.calculateTics(TrackBar* this) // @private
 	{
 		// Calculating logical & physical positions for tics.
 		int twidth;
@@ -294,12 +294,12 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 		}
 	}
 
-	fn void TrackBar.setupValueInternal(TrackBar* this, int iValue) @private
+	fn void TrackBar.setupValueInternal(TrackBar* this, int iValue) // @private
 	{
 		this.value = this.reversed ? (int)(U16_MAX - iValue) : iValue;
 	}
 
-	fn bool TrackBar.fillChannelRect(TrackBar* this, NMCustomDraw* nm, Rect trc) @private
+	fn bool TrackBar.fillChannelRect(TrackBar* this, NMCustomDraw* nm, Rect trc) // @private
 	{
 		/* If show_selection property is enabled in this trackbar,
 		 * we need to show the area between thumb and channel starting in diff color.
@@ -336,32 +336,32 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 		return result;
 	}
 
-	fn Rect TrackBar.getThumbRect(TrackBar* this) @private
+	fn Rect TrackBar.getThumbRect(TrackBar* this) // @private
 	{
 		Rect rc;
         this.sendMsg(TBM_GETTHUMBRECT, 0, &rc);
         return rc;
 	}
 
-	fn void TrackBar.drawVerticalTics(TrackBar* this, Hdc hdc, int px, int py) @private
+	fn void TrackBar.drawVerticalTics(TrackBar* this, Hdc hdc, int px, int py) // @private
 	{
 		api_MoveToEx(hdc, px, py, null);
         api_LineTo(hdc, px + this.ticLen, py);
 	}
 
-	fn void TrackBar.drawHorizontalTicsDown(TrackBar* this, Hdc hdc, int px, int py) @private
+	fn void TrackBar.drawHorizontalTicsDown(TrackBar* this, Hdc hdc, int px, int py) // @private
 	{
 		api_MoveToEx(hdc, px, py, null);
         api_LineTo(hdc, px, py + this.ticLen);
 	}
 
-	fn void TrackBar.drawHorizontalTicsUpper(TrackBar* this, Hdc hdc, int px, int py) @private
+	fn void TrackBar.drawHorizontalTicsUpper(TrackBar* this, Hdc hdc, int px, int py) // @private
 	{
 		api_MoveToEx(hdc, px, py, null);
         api_LineTo(hdc, px, py - this.ticLen);
 	}
 
-	fn void TrackBar.drawTics(TrackBar* this, Hdc hdc) @private
+	fn void TrackBar.drawTics(TrackBar* this, Hdc hdc) // @private
 	{
 		Hgdiobj oldpen = api_SelectObject(hdc, (Hgdiobj)this._ticPen);
 		defer api_SelectObject(hdc, oldpen);
@@ -393,7 +393,7 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 		}
 	}
 
-	fn void TrackBar.scrollHandler(TrackBar* this, Hwnd hw, Wparam wpm) @private
+	fn void TrackBar.scrollHandler(TrackBar* this, Hwnd hw, Wparam wpm) // @private
 	{
 		Word lwp = loWord(wpm);
 		switch (lwp) {
@@ -449,7 +449,7 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 		}
 	}
 
-	fn Lresult TrackBar.wmNotifyHandler(TrackBar* this, Hwnd hw, Lparam lpm) @private
+	fn Lresult TrackBar.wmNotifyHandler(TrackBar* this, Hwnd hw, Lparam lpm) // @private
 	{
 		NMHdr* nmh = (NMHdr*) lpm;
 		switch (nmh.code) {
@@ -502,16 +502,16 @@ enum TrackChange : char {NONE, ARROWLOW, ARROWHIGH, PAGELOW, PAGEHIGH, MOUSECLIC
 	}
 
 	// Freeing resources used for this TrackBar.
-	fn void TrackBar.dtor(TrackBar* this) @private
+	fn void TrackBar.dtor(TrackBar* this) // @private
 	{
 		this._tdList.free();
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult tkbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult tkbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	// log("message %s", msg);
 	TrackBar* this = bitcast(refData, TrackBar*);

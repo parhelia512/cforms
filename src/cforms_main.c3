@@ -53,13 +53,13 @@ fn void cforms_init() @init
 fn void initNormalForm() // Called when first form starting.
 {
 	// print("InitNormal Form started");
-	app.defWinColor = colorFromUint(0xF0F0F0); //colorFromRgb(0xED, 0xED, 0xED);
+	app.defWinColor = newColor(0xF0F0F0); //colorFromRgb(0xED, 0xED, 0xED);
 	app.screenWidth = api_GetSystemMetrics(0);
 	app.screenHeight = api_GetSystemMetrics(1);
 	app.sysDPI = api_GetDpiForSystem();	
 	registerClass();
 	InitCommonControls icc;
-	icc.dwSize = InitCommonControls.sizeof;
+	icc.dwSize = InitCommonControls::size;
 	icc.dwICC = ICC_STANDARD_CLASSES;
 	api_InitCommonControlsEx(&icc);
 }
@@ -67,7 +67,7 @@ fn void initNormalForm() // Called when first form starting.
 fn void initMsgForm() // Called when first msg-only window starting
 {
 	WndClassEx wc;
-	wc.cbSize = WndClassEx.sizeof;
+	wc.cbSize = WndClassEx::size;
 	wc.lpfnWndProc = &msgform_wndproc;	
 	wc.hInstance = app.hins;
 	wc.lpszClassName = &mfclass[0];
@@ -108,7 +108,7 @@ macro echo(String msg, ...)
 {
 	static int x = 0;
 	x++;
-    $switch $vacount:
+    $switch $vaarg.len:
 		$case 0: ptf("[%d] %s", x, msg);
 		$case 1: ptf("[%d] %s, %s", x, msg, $vaarg[0]);
 		$case 2: ptf("[%d] %s, %s, %s", x, msg, $vaarg[0], $vaarg[1]);

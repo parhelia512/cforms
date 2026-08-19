@@ -46,7 +46,7 @@ fn void Font.cloneFrom(&this, Font src) {
 	if (src.handle) {
 		if (this.handle) api_DeleteObject((Hgdiobj)this.handle);
 		LogFont lf;
-		if (api_GetObject(src.handle, LogFont.sizeof, (Pvoid)&lf)) {
+		if (api_GetObject(src.handle, LogFont::size, (Pvoid)&lf)) {
 			// print("font clone success");
 			this.handle = api_CreateFontIndirect(&lf);
 		} else {
@@ -61,7 +61,7 @@ fn void Font.createHandle(&this)
 {
 	//double scale = app.scaleFactor / 100;
     //int fsiz = (int)(scale * (double)this.size);  
-    int iHeight = api_MulDiv(this.size, app.sysDPI, 72); //-api_MulDiv(fsiz, app.sysDPI, 72);    
+    int iHeight = api_MulDiv(this.size, (int)app.sysDPI, 72); //-api_MulDiv(fsiz, app.sysDPI, 72);    
 	
 	LogFont lf;
 	fillBuffer(lf.lfFaceName[..], this.name);

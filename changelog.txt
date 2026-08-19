@@ -1,6 +1,12 @@
 Created on: 29-Mar-2026 08:49 AM
 Purpose: Cforms changelog
 
+Version 1.04.1 (19-Aug-2026)
+    Update code for C3 compiler version 0.8.4
+    Button gradient back color drawing improved.
+    GroupBox drawing improved.
+    lineColor & inheritStyle properties added to GroupBox
+
 Version 1.03.1 (27-Jun-2026)
     Fixed bug when handling the WM_NCCREATE message in Form & PictureBox.
     Improved custom draw code for Button, CheckBox and RadioButton.

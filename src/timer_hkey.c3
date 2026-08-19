@@ -17,7 +17,7 @@ struct Timer
 fn Timer* newTimer(Hwnd pHwnd, uint tickInterval = 100, 
                         EventHandler onTickHandler = null)
 {
-    Timer* this = allocator::new(mem, Timer);
+    Timer* this = alloc::new(mem, Timer);
     this.interval = tickInterval;
     this.idNum = (Uintptr)this;
     this.parentHwnd = pHwnd;
@@ -55,7 +55,7 @@ fn void Timer.destroy(&this)
         this._isEnabled = false;
     }
     api_SendMessage(this.parentHwnd, MM_TIMER_DESTROY, this.idNum, 0);
-    allocator::free(mem, this);
+    alloc::free(mem, this);
 }
 
 struct HKResult {int hkid; bool result;}
@@ -75,7 +75,7 @@ fn HKResult regNewHotKey(Hwnd hwnd, Keys[] keyList, EventHandler callback, bool 
         } else if ((k == Keys.LEFT_WIN) | (k == Keys.RIGHT_WIN)) {
             fmod |= 0x0008;
         } else if (k.value < 256) { // assuming key codes are < 256
-            vkey = k.value;
+            vkey = (uint)k.value;
         }
     }
     if (!repeat) fmod |= 0x4000;

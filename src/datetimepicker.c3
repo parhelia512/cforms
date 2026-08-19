@@ -57,10 +57,10 @@ struct DateTimePicker
 
 enum DTPFormat : int(String descrption, int value )
 {
-	LONG_DATE = {"Long Date format", 1},
-	SHORT_DATE = {"Short Date Format", 2},
-	TIME_ONLY = {"Only show Time", 4},
-	CUSTOM = {"User Defined Format", 8}
+	LONG_DATE {"Long Date format", 1},
+	SHORT_DATE {"Short Date Format", 2},
+	TIME_ONLY {"Only show Time", 4},
+	CUSTOM {"User Defined Format", 8}
 }
 
 
@@ -69,7 +69,7 @@ enum DTPFormat : int(String descrption, int value )
 	// DateTimePicker constructor
 	fn DateTimePicker* newDateTimePicker(Control* parent, int x = 10, int y = 10)
 	{
-		DateTimePicker* this = allocator::new(mem, DateTimePicker);
+		DateTimePicker* this = alloc::new(mem, DateTimePicker);
 		this.kind = ControlType.DATE_TIME_PICKER;
 		this.initBase(parent, x, y, 0, 0, &dtpNumber);	
 		this.format = DTPFormat.CUSTOM;
@@ -79,7 +79,7 @@ enum DTPFormat : int(String descrption, int value )
 	}
 
 	// Create the handle of DateTimePicker
-	fn void _dtpCreateHandle(Control* ctl) @private
+	fn void _dtpCreateHandle(Control* ctl) // @private
 	{
 		DateTimePicker* this = (DateTimePicker*)ctl;
 		this.seDTPStyle();
@@ -95,7 +95,7 @@ enum DTPFormat : int(String descrption, int value )
 // Private functions
 
 	// Setting control's style bits.
-	fn void DateTimePicker.seDTPStyle(DateTimePicker* this) @private
+	fn void DateTimePicker.seDTPStyle(DateTimePicker* this) // @private
 	{
 		switch (this.format) {
 			case DTPFormat.CUSTOM: this._style |= DTS_LONGDATEFORMAT | DTS_APPCANPARSE;
@@ -115,7 +115,7 @@ enum DTPFormat : int(String descrption, int value )
 		this._bkBrush = this.backColor.getBrush();
 	}
 
-	fn void DateTimePicker.postCreationTasks(DateTimePicker* this) @private
+	fn void DateTimePicker.postCreationTasks(DateTimePicker* this) // @private
 	{
 		if (this.format == DTPFormat.CUSTOM) {
 			/*  Here, we have a strange situation. Since, we are working with unicode string, we need...
@@ -130,10 +130,10 @@ enum DTPFormat : int(String descrption, int value )
 		this.sendMsg(DTM_GETIDEALSIZE, 0, &ss);
 		this.width = ss.cx + 2;
 		this.height = ss.cy + 5;
-		api_SetWindowPos(this.handle, null, this.xpos, this.ypos, this.width, this.height, SWP_NOZORDER);
+		api_SetWindowPos(this.handle, nullHwnd, this.xpos, this.ypos, this.width, this.height, SWP_NOZORDER);
 	}
 
-	fn void DateTimePicker.wmNotifyHandler(DateTimePicker* this, Lparam lpm) @private
+	fn void DateTimePicker.wmNotifyHandler(DateTimePicker* this, Lparam lpm) // @private
 	{
 		NMHdr* nm = (NMHdr*)lpm;
 		switch (nm.code) {
@@ -160,15 +160,15 @@ enum DTPFormat : int(String descrption, int value )
 	}
 
 	// Freeing resources used for this DateTimePicker.
-	fn void DateTimePicker.dtor(DateTimePicker* this) @private
+	fn void DateTimePicker.dtor(DateTimePicker* this) // @private
 	{
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult dtpWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult dtpWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	// io::printfn("message %s", msg);
 	DateTimePicker* this = bitcast(refData, DateTimePicker*);
@@ -203,6 +203,6 @@ fn DateTimeInfo dateTimeFromSysTime(SystemTime st) {
 	this.minute = st.wMinute ;
 	this.second = st.wSecond ;
 	this.milliSeconds = st.wMilliseconds ;
-	this.dayOfWeek = WeekDays.from_ordinal(st.wDayOfWeek);
+	this.dayOfWeek = (WeekDays)st.wDayOfWeek;
 	return this;
 }

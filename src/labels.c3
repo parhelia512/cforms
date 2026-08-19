@@ -41,7 +41,7 @@ struct Label
 	fn Label* newLabel(Control* parent, String text,
 						int x = 10, int y = 10, int width = 0, int height = 0)
 	{
-		Label* this = allocator::new(mem, Label);
+		Label* this = alloc::new(mem, Label);
 		this.kind = ControlType.LABEL;
 		this.initBase(parent, x, y, width, height, &lbNumber, text);	
 		this.autoSize = true;
@@ -52,7 +52,7 @@ struct Label
 	}
 
 	// Create the handle of Label
-	fn void _lblCreateHandle(Control* ctl) @private
+	fn void _lblCreateHandle(Control* ctl) // @private
 	{
 		Label* this = (Label*)ctl;
 		this.checkForAutoSize();
@@ -66,7 +66,7 @@ struct Label
 // End of Public functions
 
 // Private functions
-	fn void Label.checkForAutoSize(Label* lb) @private
+	fn void Label.checkForAutoSize(Label* lb) // @private
 	{
 		if (lb.multiLine || (lb.width != 0) || (lb.height != 0 )) lb.autoSize = false ;
 		if (!lb.autoSize) {
@@ -76,7 +76,7 @@ struct Label
 		lb._bkBrush = lb.backColor.getBrush();
 	}
 
-	fn void Label.calculateAutoSize(Label* this) @private
+	fn void Label.calculateAutoSize(Label* this) // @private
 	{
 		Hdc hdc = api_GetDC(this.handle) ;
 		Size ss;
@@ -85,11 +85,11 @@ struct Label
 		api_ReleaseDC(this.handle, hdc) ;
 		this.width = ss.cx + 3 ;
 		this.height = ss.cy  ;
-		api_SetWindowPos(this.handle, null, this.xpos, this.ypos, this.width, this.height, SWP_NOMOVE);
+		api_SetWindowPos(this.handle, (Hwnd)null, this.xpos, this.ypos, this.width, this.height, SWP_NOMOVE);
 	}
 
 
-	fn Hbrush Label.colorMsgHandler(Label* this, Wparam wpm) @private
+	fn Hbrush Label.colorMsgHandler(Label* this, Wparam wpm) // @private
 	{
 		Hdc hdc = (Hdc)wpm;
 		if (this._drawMode & 1) api_SetTextColor(hdc, this.foreColor.ref);
@@ -98,15 +98,15 @@ struct Label
 	}
 
 	// Freeing resources used for this Label.
-	fn void Label.dtor(Label* this) @private
+	fn void Label.dtor(Label* this) // @private
 	{
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult lbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult lbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	// io::printfn("message %s", msg);
 	Label* this = bitcast(refData, Label*);

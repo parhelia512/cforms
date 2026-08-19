@@ -99,6 +99,7 @@ struct Control
 	bool _isMouseTracking;
 	bool _isMouseEntered;
 	bool _isPressed;
+	Rect _myRect;
 	
 	Hbrush _bkBrush;
 	WideString* _wsText;
@@ -154,7 +155,7 @@ bitstruct MouseTrackingFlags : Dword {
 	 * Control.setFont(String fontName, int fontSize, FontWight fweight)*/
 	macro void Control.setFont(Control* c, ...)
 	{
-		$switch $vacount:
+		$switch $vaarg.len:
 			$case 1: c.setFont1($vaarg[0]);
 			$case 2: c.setFont2($vaarg[0], $vaarg[1]);
 			$case 3: c.setFont3($vaarg[0], $vaarg[1], $vaarg[2]);
@@ -183,20 +184,20 @@ bitstruct MouseTrackingFlags : Dword {
 	fn void Control.setWidth(&this, int newWidth) 
 	{
 		this.width = newWidth;
-		api_SetWindowPos(this.handle, null, 0, 0, newWidth, this.height, SWP_NOMOVE | SWP_NOZORDER);
+		api_SetWindowPos(this.handle, nullHwnd, 0, 0, newWidth, this.height, SWP_NOMOVE | SWP_NOZORDER);
 	}
 
 	fn void Control.setHeight(&this, int newHeight) 
 	{
 		this.height = newHeight;
-		api_SetWindowPos(this.handle, null, 0, 0, this.width, newHeight, SWP_NOMOVE | SWP_NOZORDER);
+		api_SetWindowPos(this.handle, nullHwnd, 0, 0, this.width, newHeight, SWP_NOMOVE | SWP_NOZORDER);
 	}
 
 	fn void Control.setSize(&this, int newWidth, int newHeight) 
 	{
 		this.width = newWidth;
 		this.height = newHeight;
-		api_SetWindowPos(this.handle, null, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
+		api_SetWindowPos(this.handle, nullHwnd, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
 	}
 	
 
@@ -227,12 +228,12 @@ bitstruct MouseTrackingFlags : Dword {
 
 	macro void Control.addContextMenu(&self, ...)
 	{
-		$if $vacount == 1 && $typeof($vaarg[0]) == ContextMenu*:
+		$if $vaarg.len == 1 && $Typeof($vaarg[0]) == ContextMenu*:
 			// One arg and it is ContextMenu ptr
 			return self.setContextMenu1($vaarg[0]); 
 		$else
 			// Multiple args, so it must be strings for menu items.
-			return self.setContextMenu2($vasplat);
+			return self.setContextMenu2(...$vaarg);
 		$endif
 	}
 
@@ -245,7 +246,7 @@ bitstruct MouseTrackingFlags : Dword {
 
 	
 
-	fn void Control.setMouseHoverHandlerInternal(&this, EventHandler evtProc) @private
+	fn void Control.setMouseHoverHandlerInternal(&this, EventHandler evtProc) // @private
 	{
 		this._mouseEvents.hover = true;
 		this._tmeFlags.hover = true;
@@ -313,7 +314,7 @@ bitstruct MouseTrackingFlags : Dword {
 
 	// Centralized init for common properties
 	fn void Control.initBase(&this, Control* parent, int x, int y, 
-							int w, int h, int* ctlCounter, String ctxt = "") @private
+							int w, int h, int* ctlCounter, String ctxt = "") // @private
 	{
 		this._parent = parent;
 		this.xpos = x;
@@ -328,7 +329,7 @@ bitstruct MouseTrackingFlags : Dword {
 		*ctlCounter += 1;
 		globalCtlID += 1;
 
-		if (ctxt != "" && this.kind.info.isTextable) {
+		if (this.kind.info.isTextable) {
 			this.text = ctxt;
 			this._wsText = newWideString(ctxt);
 		}
@@ -336,18 +337,31 @@ bitstruct MouseTrackingFlags : Dword {
 		// Handle Style Inheritance (The GroupBox passthrough)
 		if (parent) {
 			this._ownerForm = parent.kind == ControlType.NONE ? (Form*)parent : parent._ownerForm;
-			if (this._ownerForm) {
+			bool inheritStyle = false;
+			if (parent.kind == ControlType.GROUP_BOX) {
+				inheritStyle = ((GroupBox*)parent).inheritStyle;
+			}
+			if (!inheritStyle) {
 				if (this.kind.info.hasFont) {this.font.cloneFrom(this._ownerForm.font);	}
 				if (this.kind.info.bcm == BackColorMode.INHERIT_BGC) {
 					this.backColor = this._ownerForm.backColor;
-
 				} else if (this.kind.info.bcm == BackColorMode.WHITE_BGC) {
 					this.backColor = newColor(0xFFFFFF);
 				} 
 
 				if (this.kind.info.blackForeColor) this.foreColor = newColor(0x000000);
-				this._ownerForm.controls.push(this);
+				
+			} else {
+				if (this.kind.info.hasFont) {this.font.cloneFrom(this._parent.font);	}
+				if (this.kind.info.bcm == BackColorMode.INHERIT_BGC) {
+					this.backColor = this._parent.backColor;
+				} else if (this.kind.info.bcm == BackColorMode.WHITE_BGC) {
+					this.backColor = newColor(0xFFFFFF);
+				} 
+
+				if (this.kind.info.blackForeColor) this.foreColor = newColor(0x000000);
 			}
+			this._ownerForm.controls.push(this);
 		}
 	}
 
@@ -364,7 +378,7 @@ bitstruct MouseTrackingFlags : Dword {
 	}
 
 
-	fn void Control._createInternal(&this, int width, int height) @private
+	fn void Control._createInternal(&this, int width, int height) // @private
 	{
 		if (this.handle) return;
 		Char16* pWtxt = this._wsText ? this._wsText.ptr() : null;
@@ -381,6 +395,7 @@ bitstruct MouseTrackingFlags : Dword {
 			this._isCreated = true;
 			this._cachedWidth = this.width;
 			this._cachedHeight = this.height;
+			api_GetClientRect(this.handle, &this._myRect);
 			if (this.kind.info.hasFont) this._setFontInternal();
 		} else {
 			ptf("Cannot create Control handle! Error code: %d", api_GetLastError());
@@ -501,51 +516,51 @@ bitstruct MouseTrackingFlags : Dword {
 	}
 
 
-	fn void Control.setSubClass(Control* ctl, Subclassproc pFunc) @private
+	fn void Control.setSubClass(Control* ctl, Subclassproc pFunc) // @private
 	{
 		api_SetWindowSubclass(ctl.handle, pFunc, globalSubClsID, bitcast(ctl, Dwordptr));
 		globalSubClsID += 1;
 	}
 
-	macro Lresult Control.sendMsg(Control* ctl, uint msg, wpm, lpm) @private
+	macro Lresult Control.sendMsg(Control* ctl, uint msg, wpm, lpm) // @private
 	{
 		return api_SendMessage(ctl.handle, msg, (Wparam)wpm, (Lparam)lpm);
 	}
 
-	fn void Control._setFontInternal(Control* ctl) @private @inline
+	fn void Control._setFontInternal(Control* ctl) // @private @inline
 	{
 		if (!ctl.font._isCreated) ctl.font.createHandle();
 		ctl.sendMsg(WM_SETFONT, ctl.font.handle, true);
 	}
 
-	fn Rect Control.clientRect(Control* c) @private
+	fn Rect Control.clientRect(Control* c) // @private
 	{
 		Rect rct;
 		api_GetClientRect(c.handle, &rct);
 		return rct;
 	}
 
-	fn void Control.setFont1(Control* c, Font* font) @private
+	fn void Control.setFont1(Control* c, Font* font) // @private
 	{
 		c.font = *font;
 		if (c._isCreated) c._setFontInternal();
 	}
 
-	fn void Control.setFont2(Control* c, String fname, int fsize) @private
+	fn void Control.setFont2(Control* c, String fname, int fsize) // @private
 	{
 		Font f = newFont(fname, fsize);
 		c.font = f;
 		if (c._isCreated) c._setFontInternal();
 	}
 
-	fn void Control.setFont3(Control* c, String fname, int fsize, FontWeight fweight) @private
+	fn void Control.setFont3(Control* c, String fname, int fsize, FontWeight fweight) // @private
 	{
 		Font f = newFont(fname, fsize, fweight);
 		c.font = f;
 		if (c._isCreated) c._setFontInternal();
 	}
 
-	fn void Control.setIdealSize(&this) @private  //261023 // Only used CheckBox & RadioButton
+	fn void Control.setIdealSize(&this) // @private  //261023 // Only used CheckBox & RadioButton
 	{
 		Size ss ;
         Lresult x = this.sendMsg(BCM_GETIDEALSIZE, 0, &ss);
@@ -555,13 +570,14 @@ bitstruct MouseTrackingFlags : Dword {
 		// ptf("MoveWindow: %d, %d, ret: %d, name: %s", ss.cx, ss.cy, x, this.name.str_view());
 	}
 
-	fn void pwc(Control* this, String msg) @private{
+	fn void pwc(Control* this, String msg) // @private
+	{
 		ptf("Control %s: %s, x: %d, y: %d, w: %d, h: %d", msg, this.name.str_view(), this.xpos, this.ypos, this.width, this.height);
 	}
 
 
 	// Get the string from this control. Free the return value when you are done.
-	fn String Control.getTextInternal(Control* this, Hwnd hw = null) @private
+	fn String Control.getTextInternal(Control* this, Hwnd hw = nullHwnd) // @private
 	{
 		Hwnd hwnd = hw ? hw : this.handle;
 		int tLen = api_GetWindowTextLength(hwnd);
@@ -585,14 +601,14 @@ bitstruct MouseTrackingFlags : Dword {
 		}
 	}
 
-	fn void Control.setContextMenu1(&this, ContextMenu* cmenu) @private
+	fn void Control.setContextMenu1(&this, ContextMenu* cmenu) // @private
 	{
 		this.contextMenu = cmenu;
 		if (!cmenu.parent) this.contextMenu.parent = this;
 		this._cmenuUsed = true;
 	}
 
-	fn void Control.setContextMenu2(Control* this, String... menuNames) @private
+	fn void Control.setContextMenu2(Control* this, String... menuNames) // @private
 	{
 		ContextMenu* cmenu = newContextMenu();
 		cmenu.addMenus(...menuNames);
@@ -616,7 +632,7 @@ bitstruct MouseTrackingFlags : Dword {
 	}
 
 	fn void Control._setPos(&this, uint flag) {
-		api_SetWindowPos(this.handle, null, this.xpos, this.ypos, 
+		api_SetWindowPos(this.handle, nullHwnd, this.xpos, this.ypos, 
 						this.width, this.height, flag);
 	}
 
@@ -625,7 +641,7 @@ bitstruct MouseTrackingFlags : Dword {
 	fn bool trackMouse(Hwnd hwnd, uint flags, uint hoverTime = HOVER_DEFAULT)
 	{
 		TrackMOUSEEVENT tme;
-		tme.cbSize = TrackMOUSEEVENT.sizeof;
+		tme.cbSize = TrackMOUSEEVENT::size;
 		tme.dwFlags = flags;
 		tme.hwndTrack = hwnd;
 		tme.dwHoverTime = hoverTime;

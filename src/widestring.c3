@@ -1,5 +1,6 @@
 // Created on 16-May-2025 14:00
 module cforms;
+// import std::core::mem::allocators;
 
 int one = 1;
 
@@ -11,7 +12,7 @@ struct WideString {
 }
 
 macro WideString* newWideString(String txt) {
-    var $Type = $typeof(txt);
+    var $Type = $Typeof(txt);
 	$switch $Type:
         $case String: 
             return newWideStringFromStr(txt);
@@ -21,23 +22,25 @@ macro WideString* newWideString(String txt) {
 }
 
 fn WideString* newWideStringFromStr(String txt) {
-    WideString* this = allocator::new(mem, WideString);
-    this._inpStr = txt;
-    this._inpLen = txt.len;
-    this._wcLen = api_MultiByteToWideChar(CP_UTF8, 0, 
-                                            &this._inpStr[0], 
-                                            this._inpLen,
-                                            null, 0);
-    if (this._wcLen) {
-        this.convertToWString();
-    }
+    WideString* this = alloc::new(mem, WideString);
+	this._inpLen = txt.len;
+	if (txt.len > 0) {
+		this._inpStr = txt;		
+		this._wcLen = api_MultiByteToWideChar(  CP_UTF8, 0, 
+												&this._inpStr[0], 
+												this._inpLen,
+												null, 0);
+		if (this._wcLen) {
+			this.convertToWString();
+		}
+	}
     return this;
 }
 
 fn WideString* newWideStringFromPtr(String txt) {return null;}
 
 fn void WideString.convertToWString(&this) {
-    this._data = (WString)allocator::alloc_array_try(mem, Char16, (usz)this._wcLen + 1)!!;
+    this._data = (WString)alloc::alloc_array_try(mem, Char16, (usz)this._wcLen + 1)!!;
     int slen = api_MultiByteToWideChar(CP_UTF8, 0, 
                                         &this._inpStr[0], this._inpLen,
                                         this._data, this._wcLen);
@@ -52,8 +55,8 @@ fn void WideString.updateBuffer(&this, String txt) {
                                         null, 0);
     if (slen > 0) {
         if (slen > this._wcLen) {
-            allocator::free(mem, this._data);
-            this._data = (WString)allocator::alloc_array_try(mem, 
+            alloc::free(mem, this._data);
+            this._data = (WString)alloc::alloc_array_try(mem, 
                                                             Char16, 
                                                             (usz)slen + 1)!!;
         }
@@ -89,7 +92,7 @@ fn int WideString.slen(&this) @inline {
 
 fn void WideString.finalize(&this) {
     if (this._data) {        
-        allocator::free(mem, this._data);
+        alloc::free(mem, this._data);
     }
-    allocator::free(mem, this);
+    alloc::free(mem, this);
 }

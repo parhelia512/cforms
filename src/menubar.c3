@@ -62,7 +62,7 @@ struct MenuBase
 	MenuItemList _menuList;
 }
 
-fn MenuItem* MenuBase.getItem1(&this, String menuName) @private
+fn MenuItem* MenuBase.getItem1(&this, String menuName) // @private
 {
 	if (this._menuList.len() > 0) {
     	foreach(menu: this._menuList) {
@@ -72,11 +72,11 @@ fn MenuItem* MenuBase.getItem1(&this, String menuName) @private
 	return null;
 }
 
-fn MenuItem* MenuBase.getItem2(&this, int index) @private
+fn MenuItem* MenuBase.getItem2(&this, int index) // @private
 {
 	if (this._menuList.len() > 0) {
     	foreach(menu: this._menuList) {
-			if (menu._index == index) return menu;
+			if (menu._index == (uint)index) return menu;
 		}
 	}
 	return null;
@@ -85,7 +85,7 @@ fn MenuItem* MenuBase.getItem2(&this, int index) @private
 // Get menu item from index or menu name.
 macro MenuItem* MenuBase.menus(&this, indexOrName)
 {
-	$switch $typeof(indexOrName):
+	$switch $Typeof(indexOrName):
 		$case String: return this.getItem1(indexOrName);
 		$case int: return this.getItem2(indexOrName);
 		$default: $error "No overload for this type";
@@ -147,7 +147,7 @@ struct MenuItem
 // Menubar Constructor
 fn MenuBar* newMenuBar(Form* frm)
 {
-	MenuBar* this = allocator::new(mem, MenuBar);
+	MenuBar* this = alloc::new(mem, MenuBar);
 	this.handle = api_CreateMenu();
 	this.nativeStyle = true;
 	this._pForm = frm;
@@ -167,7 +167,7 @@ fn bool isPopup(MenuType mtp)
 
 fn MenuItem* newMenuItem(String menuName, MenuType mtp, Hmenu parentHmenu, uint indexNum, ) 
 {
-	MenuItem* this = allocator::new(mem, MenuItem);
+	MenuItem* this = alloc::new(mem, MenuItem);
 	this._popup = isPopup(mtp);
     this.handle = this._popup ? api_CreatePopupMenu() : api_CreateMenu();
     this._index = indexNum;
@@ -226,7 +226,7 @@ fn void MenuBar.createHandle(&this)
 		if (!this.nativeStyle) {
 			menu_draw_type = MF_OWNERDRAW;
 			// Let's setup the width & height for each menu item text.
-			Hdc hdcMem = api_CreateCompatibleDC(null);
+			Hdc hdcMem = api_CreateCompatibleDC((Hdc)null);
 			defer api_DeleteDC(hdcMem);
 			Hgdiobj oldfont = api_SelectObject(hdcMem, (Hgdiobj)this.font.handle);
 			defer api_SelectObject(hdcMem, oldfont);
@@ -243,17 +243,17 @@ fn void MenuBar.createHandle(&this)
 	this._pForm._menubarCreated = true;
 }
 
-fn void MenuItem.insertMenuInternal(&this, Hmenu parentHmenu, uint drawType) @private
+fn void MenuItem.insertMenuInternal(&this, Hmenu parentHmenu, uint drawType) // @private
 {
 	MenuItemInfoW mii;
-    mii.cbSize = (uint) MenuItemInfoW.sizeof;
+    mii.cbSize = (uint) MenuItemInfoW::size;
     mii.fMask = MIIM_ID | MIIM_TYPE | MIIM_DATA | MIIM_SUBMENU | MIIM_STATE;
     mii.fType = drawType;
     mii.dwTypeData = this._wideText;
     mii.cch = (uint)this.text.len;
     mii.dwItemData = bitcast(this, Ulongptr);
     mii.wID = this.idNum;
-	mii.fState = this._mstate.ordinal;
+	mii.fState = (uint)this._mstate;
     mii.hSubMenu = this._popup ? this.handle : nullMenu;
     api_InsertMenuItemW(parentHmenu, this.idNum, 0, &mii);
     this._isCreated = true;
@@ -261,7 +261,7 @@ fn void MenuItem.insertMenuInternal(&this, Hmenu parentHmenu, uint drawType) @pr
 }
 
 // Create menu item and append the handle in parent menu.
-fn void MenuItem.create(&this, uint draw_type) @private
+fn void MenuItem.create(&this, uint draw_type) // @private
 {
 	switch (this.kind) {
     	case MenuType.BASE_MENU: nextcase;
@@ -348,8 +348,8 @@ fn void MenuItem.destroy(&this)
 		foreach(menu: this._menuList) {menu.destroy();}
 		this._menuList.free();
 	}
-	allocator::free(mem, this._wideText);
-	allocator::free(mem, this);
+	alloc::free(mem, this._wideText);
+	alloc::free(mem, this);
 }
 
 // Freeing resources for a menu bar
@@ -359,6 +359,6 @@ fn void MenuBar.destroy(&this)
 			foreach(menu: this._menuList) {menu.destroy();}
 			this._menuList.free();
 	}
-	allocator::free(mem, this);
+	alloc::free(mem, this);
 }
 

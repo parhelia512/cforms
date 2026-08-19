@@ -36,7 +36,7 @@ Wstring msgWinClass = {'c', 'f', 'o', 'r', 'm', 's', '_', 'm', 's','g','_','w', 
 const int X = -3;
 const Hwnd HWND_MESSAGE = (Hwnd)(Ulongptr)-3;
 const uint LIMG_FLAG = LR_DEFAULTCOLOR | LR_LOADFROMFILE;
-
+Hinstance nullHinst = (Hinstance)null;
 
 struct TrayIcon 
 {
@@ -71,25 +71,25 @@ struct TrayIcon
 **/
 fn TrayIcon* newTrayIcon( String tooltip, String iconpath = "")
 { 
-    TrayIcon* this = allocator::new(mem, TrayIcon);
+    TrayIcon* this = alloc::new(mem, TrayIcon);
     this.create_message_window();
 
     if (iconpath == "") {
-        this._hTrayIcon = api_LoadIcon(null, IDI_SHIELD);
+        this._hTrayIcon = api_LoadIcon(nullHinst, IDI_SHIELD);
     } else {
         @pool() {                        
-            this._hTrayIcon = api_LoadImage(null, 
+            this._hTrayIcon = api_LoadImage(nullHinst, 
                                             String.to_temp_utf16(iconpath)!!, 
                                             IMAGE_ICON, 0, 0, LIMG_FLAG);
             if (!this._hTrayIcon) {
-                this._hTrayIcon = api_LoadIcon(null, IDI_WINLOGO);
+                this._hTrayIcon = api_LoadIcon(nullHinst, IDI_WINLOGO);
                 ptf("Can't create icon with %s", iconpath);            
             }       
         };
     }
     @pool() {
         Char16[] tipTxt = String.to_temp_utf16(tooltip)!!;
-        this._nid.cbSize = NotifyIconData.sizeof;
+        this._nid.cbSize = NotifyIconData::size;
         this._nid.hWnd = this.handle;
         this._nid.uID = 1;
         this._nid.uVersionOrTimeout = 4;
@@ -120,7 +120,7 @@ fn void TrayIcon.showBalloon(&this, String title,
 		this._nid.balloonText[:bMsg.len] = bMsg[:^0];
 
         if (icon == BalloonIcon.CUSTOM && iconpath != "") {
-            this._nid.hIcon  = api_LoadImage(null, String.to_temp_utf16(iconpath)!!, IMAGE_ICON, 0, 0, LIMG_FLAG);
+            this._nid.hIcon  = api_LoadImage(nullHinst, String.to_temp_utf16(iconpath)!!, IMAGE_ICON, 0, 0, LIMG_FLAG);
 
             // If any error happened, we will use our base icon.
             if (!this._nid.hIcon) {
@@ -157,9 +157,9 @@ fn void TrayIcon.updateTooltip(&this, String tooltip)
 fn void TrayIcon.updateIcon(&this, String iconpath)
 {
     @pool() {
-        this._hTrayIcon = api_LoadImage(null, String.to_temp_utf16(iconpath)!!, IMAGE_ICON, 0, 0, LIMG_FLAG);
+        this._hTrayIcon = api_LoadImage(nullHinst, String.to_temp_utf16(iconpath)!!, IMAGE_ICON, 0, 0, LIMG_FLAG);
         if (!this._hTrayIcon) {
-            this._hTrayIcon = api_LoadIcon(null, IDI_WINLOGO);
+            this._hTrayIcon = api_LoadIcon(nullHinst, IDI_WINLOGO);
             ptf("Can't create icon with %s", iconpath);   
         }
         this._nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP; // This is for safety,'cause flags might be zero.  
@@ -240,7 +240,7 @@ fn void TrayIcon.destroy(&this)
     removeItemFrom(app.trayHwnds, this.handle);
 }
 
-fn void TrayIcon.resetIconInternal(&this) @private
+fn void TrayIcon.resetIconInternal(&this) // @private
 {
     this._nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     this._nid.hIcon = this._hTrayIcon;
@@ -249,10 +249,10 @@ fn void TrayIcon.resetIconInternal(&this) @private
 }
 
 
-fn void TrayIcon.registerMessageWindow(&this) @private
+fn void TrayIcon.registerMessageWindow(&this) // @private
 {
 	WndClassEx wc;
-	wc.cbSize = WndClassEx.sizeof;
+	wc.cbSize = WndClassEx::size;
 	wc.lpfnWndProc = &msg_window_proc;
 	wc.hInstance = app.hins;
 	wc.lpszClassName = &msgWinClass[0];
@@ -264,10 +264,10 @@ fn bool TrayIcon.cmenuReadyToShow(&this, char c_value) @inline
     return this._cmenuUsed && ((this.menuTrigger.value & c_value) != 0);
 }
 
-fn void TrayIcon.create_message_window(&this) @private
+fn void TrayIcon.create_message_window(&this) // @private
 {
 	this.registerMessageWindow();
-	this.handle = api_CreateWindowEx(0, &msgWinClass[0], null, 0, 0, 0, 0, 0, HWND_MESSAGE, null, app.hins, null);
+	this.handle = api_CreateWindowEx(0, &msgWinClass[0], null, 0, 0, 0, 0, 0, HWND_MESSAGE, (Hmenu)null, app.hins, (Pvoid)null);
     if (this.handle) {
         app.trayHwnds.push(this.handle);  
         api_SetWindowLongPtr(this.handle, GWLP_USERDATA, bitcast(this, Longptr));
@@ -277,7 +277,7 @@ fn void TrayIcon.create_message_window(&this) @private
 	// ptf("message only win %d, last error %d", app.hMsgWin, api_GetLastError());
 }
 
-fn Lresult msg_window_proc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
+fn Lresult msg_window_proc(Hwnd hw, uint msg, Wparam wp, Lparam lp) // @private
 {   
 	switch(msg) {
 
@@ -287,7 +287,7 @@ fn Lresult msg_window_proc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
             api_Shell_NotifyIcon(NIM_DELETE, &this._nid);		    
             if (this._hTrayIcon) api_DestroyIcon(this._hTrayIcon);
             if (this._cmenuUsed && this.contextMenu) this.contextMenu.destroy();
-            allocator::free(mem, this);    
+            alloc::free(mem, this);    
             // print("TrayIcon is destroyed");        
             
 		case MM_TRAY_MSG:			

@@ -80,7 +80,7 @@ struct ComboBox
 	fn ComboBox* newComboBox(Control* parent, int x = 10, int y = 10,
 								int width = 140, int height = 27, bool enableInput = false)
 	{
-		ComboBox* this = allocator::new(mem, ComboBox);
+		ComboBox* this = alloc::new(mem, ComboBox);
 		this.kind = ControlType.COMBO_BOX;
 		this.initBase(parent, x, y, width, height, &cmbNumber);	
 		this.selectedIndex = -1;
@@ -91,7 +91,7 @@ struct ComboBox
 	}
 
 	// Create the handle of ComboBox
-	fn void _cmbCreateHandle(Control* ctl) @private
+	fn void _cmbCreateHandle(Control* ctl) // @private
 	{
 		ComboBox* this = (ComboBox*)ctl;
 		this.preCreationJobs();
@@ -135,7 +135,7 @@ struct ComboBox
 	}
 
 	// macro void ComboBox.test(ComboBox* cmb, x) {
-	// 	var $Type = $typeof(x);
+	// 	var $Type = $Typeof(x);
 	// 	$switch ($Type)
 	// 	$case String: log("TEST: it's a string");
 	// 	$case ZString: log("TEST: it's an Zstring");
@@ -170,7 +170,7 @@ struct ComboBox
 	}
 
 	// Set pre creation info.
-	fn void ComboBox.preCreationJobs(ComboBox* this) @private
+	fn void ComboBox.preCreationJobs(ComboBox* this) // @private
 	{
 		if (!this._reEnabled) {
 			// Means, combo is creating freshly
@@ -194,10 +194,10 @@ struct ComboBox
 	}
 
 	// Get and save the internal info of a ComboBox.
-	fn void ComboBox.getComboInfo(ComboBox* this) @private
+	fn void ComboBox.getComboInfo(ComboBox* this) // @private
 	{
 		ComboBoxInfo cmbInfo;
-		cmbInfo.cbSize = ComboBoxInfo.sizeof ;
+		cmbInfo.cbSize = ComboBoxInfo::size ;
 		this.sendMsg(CB_GETCOMBOBOXINFO, 0, &cmbInfo);
 		ComboInfo ci = {cmbInfo.hwndList, cmbInfo.hwndCombo};
 		this._editHwnd = cmbInfo.hwndItem;
@@ -209,7 +209,7 @@ struct ComboBox
 		editSubId += 1;
 	}
 
-	fn void ComboBox.insertItems(ComboBox* this) @private
+	fn void ComboBox.insertItems(ComboBox* this) // @private
 	{
 		if (this.items.len() > 0 ) {
 			// log("items are ready");
@@ -221,7 +221,7 @@ struct ComboBox
 		}
 	}
 
-	fn Point getComboMousePoints() @private
+	fn Point getComboMousePoints() // @private
 	{
 		Dword value = api_GetMessagePos();
 		int x = (int)((short)loWord(value));
@@ -231,7 +231,7 @@ struct ComboBox
 
 
 	// Handling back & fore color changing in WndProc function
-	fn Hbrush ComboBox.colorMsgHandler(&this, Wparam wpm) @private
+	fn Hbrush ComboBox.colorMsgHandler(&this, Wparam wpm) // @private
 	{
 		if (this._drawMode) {
 			Hdc hdc = (Hdc)wpm;
@@ -241,7 +241,7 @@ struct ComboBox
 		return this._bkBrush;
 	}
 
-	fn void ComboBox.wmCommandHandler(&this, Wparam wpm) @private
+	fn void ComboBox.wmCommandHandler(&this, Wparam wpm) // @private
 	{
 		Word ncode = hiWord(wpm);
         switch (ncode) {
@@ -272,7 +272,7 @@ struct ComboBox
 
 	}
 
-	fn void ComboBox.cmbKeyDownHandler(&this, Wparam wp) @private
+	fn void ComboBox.cmbKeyDownHandler(&this, Wparam wp) // @private
 	{
 		if (this.onKeyDown) {
 			KeyEventArgs kea = newKeyEventArgs(wp);
@@ -280,7 +280,7 @@ struct ComboBox
 		}
 	}
 
-	fn void ComboBox.cmbKeyUpHandler(&this, Wparam wp) @private
+	fn void ComboBox.cmbKeyUpHandler(&this, Wparam wp) // @private
 	{
 		if (this.onKeyUp) {
 			KeyEventArgs kea = newKeyEventArgs(wp);
@@ -341,7 +341,7 @@ struct ComboBox
 
 
 	// Freeing resources used for this ComboBox.
-	fn void ComboBox.dtor(ComboBox* this) @private
+	fn void ComboBox.dtor(ComboBox* this) // @private
 	{
 		// if (this.items.len()) {			
 		// 	foreach (item : this.items) item.free(mem); 
@@ -349,13 +349,13 @@ struct ComboBox
 		this.items.free();		
 		if (this._hoverTimer) this._hoverTimer.destroy();
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
 
-fn Lresult cmbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult cmbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {
 	
 	// io::printfn("message %s", msg);
@@ -394,7 +394,7 @@ fn Lresult cmbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwo
 }
 
 
-fn Lresult cmbEditWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult cmbEditWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {	
 	ComboBox* this = bitcast(refData, ComboBox*);
 	MsgHandlerResult res = this.baseWndProc(hw, msg, wp, lp);

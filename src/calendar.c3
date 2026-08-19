@@ -57,7 +57,7 @@ struct Calendar
 	// Calendar constructor
 	fn Calendar* newCalendar(Control* parent, int x = 10, int y = 10)
 	{
-		Calendar* this = allocator::new(mem, Calendar);
+		Calendar* this = alloc::new(mem, Calendar);
 		this.kind = ControlType.CALENDAR;
 		this.initBase(parent, x, y, 0, 0, &calNumber);
 		this.viewMode = ViewMode.MONTH_VIEW;
@@ -66,7 +66,7 @@ struct Calendar
 	}
 
 	// Create the handle of Calendar
-	fn void _calCreateHandle(Control* ctl) @private
+	fn void _calCreateHandle(Control* ctl) // @private
 	{
 		Calendar* this = (Calendar*)ctl;
 		this.setCalStyle();
@@ -97,7 +97,7 @@ struct Calendar
 // Private functions
 
 	// Setting control's style bits.
-	fn void Calendar.setCalStyle(Calendar* this) @private
+	fn void Calendar.setCalStyle(Calendar* this) // @private
 	{
 		if (this.showWeekNum) this._style |= MCS_WEEKNUMBERS;
         if (this.noTodayCircle) this._style |= MCS_NOTODAYCIRCLE;
@@ -106,24 +106,24 @@ struct Calendar
         if (this.shortDateNames) this._style |= MCS_SHORTDAYSOFWEEK;
 	}
 
-	fn void Calendar.postCreationTasks(Calendar* this) @private
+	fn void Calendar.postCreationTasks(Calendar* this) // @private
 	{
 		Rect rc;
 		this.sendMsg(MCM_GETMINREQRECT, 0, &rc);
-		api_SetWindowPos(this.handle, null, this.xpos, this.ypos, rc.right, rc.bottom, SWP_NOZORDER);
+		api_SetWindowPos(this.handle, nullHwnd, this.xpos, this.ypos, rc.right, rc.bottom, SWP_NOZORDER);
 		SystemTime st;
 		this.sendMsg(MCM_GETCURSEL, 0, &st);
 		this.setValueInternal(st);
 	}
 
-	fn void Calendar.setValueInternal(Calendar* this, SystemTime st) @private
+	fn void Calendar.setValueInternal(Calendar* this, SystemTime st) // @private
 	{
 		this.value = {st.wYear, st.wMonth, st.wDay, st.wHour,
-								st.wMinute, st.wSecond, st.wMilliseconds, WeekDays.from_ordinal(st.wDayOfWeek)};
+								st.wMinute, st.wSecond, st.wMilliseconds, (WeekDays)st.wDayOfWeek};
 	}
 
 
-	fn Lresult Calendar.wmNotifyHandler(Calendar* this, Lparam lpm) @private
+	fn Lresult Calendar.wmNotifyHandler(Calendar* this, Lparam lpm) // @private
 	{
 		NMHdr* nm = (NMHdr*)lpm;
 		switch (nm.code) {
@@ -139,8 +139,8 @@ struct Calendar
 
 			case MCN_VIEWCHANGE:
 				NMViewChange* nmv = (NMViewChange*)lpm;
-				this.viewMode = ViewMode.from_ordinal(nmv.dwNewView);
-				this.oldViewMode = ViewMode.from_ordinal(nmv.dwOldView);
+				this.viewMode = (ViewMode)nmv.dwNewView;
+				this.oldViewMode = (ViewMode)nmv.dwOldView;
 				if (this.onViewChanged) this.onViewChanged(this, &gea);
 		}
 		return 0;
@@ -149,15 +149,15 @@ struct Calendar
 
 
 	// Freeing resources used for this Calendar.
-	fn void Calendar.dtor(Calendar* this) @private
+	fn void Calendar.dtor(Calendar* this) // @private
 	{
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult calWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult calWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {
 	
 	// io::printfn("message %s", msg);

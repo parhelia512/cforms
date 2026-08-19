@@ -59,7 +59,7 @@ enum ProgressBarState : int {NONE, NORMAL, ERROR, PAUSED}
 	fn ProgressBar* newProgressBar(Control* parent, int x = 10, int y = 10,
 									int width = 200, int height = 25, bool perc = false)
 	{
-		ProgressBar* this = allocator::new(mem, ProgressBar);
+		ProgressBar* this = alloc::new(mem, ProgressBar);
 		this.kind = ControlType.PROGRESS_BAR;
 		this.initBase(parent, x, y, width, height, &pbNumber);	
 		this.minValue = 0;
@@ -74,7 +74,7 @@ enum ProgressBarState : int {NONE, NORMAL, ERROR, PAUSED}
 	}
 
 	// Create the handle of ProgressBar
-	fn void _pgbCreateHandle(Control* ctl) @private
+	fn void _pgbCreateHandle(Control* ctl) // @private
 	{
 		ProgressBar* this = (ProgressBar*)ctl;
 		this.setPbStyle();
@@ -167,14 +167,14 @@ enum ProgressBarState : int {NONE, NORMAL, ERROR, PAUSED}
 	}
 
 	// Setting control's style bits.
-	fn void ProgressBar.setPbStyle(ProgressBar* this) @private
+	fn void ProgressBar.setPbStyle(ProgressBar* this) // @private
 	{
 		if (this.barStyle == ProgressBarStyle.MARQUEE_STYLE) this._style |= PBS_MARQUEE;
         if (this.vertical) this._style |= PBS_VERTICAL;
 	}
 
 	// Drawing the percentage digits upon progressbar.
-	// fn Lresult ProgressBar.paintHandler(ProgressBar* this) @private
+	// fn Lresult ProgressBar.paintHandler(ProgressBar* this) // @private
 	// {
 	// 	Size ss;
 	// 	String ptext = progressStr(this.value);
@@ -196,7 +196,7 @@ enum ProgressBarState : int {NONE, NORMAL, ERROR, PAUSED}
 	// 	return 0;
 	// }
 
-	fn Lresult ProgressBar.paintHandler2(ProgressBar* this) @private => @pool()
+	fn Lresult ProgressBar.paintHandler2(ProgressBar* this) // @private => @pool()
 	{
 		String ptext = string::tformat("%s %%", this.value);
 		Char16* wtext = ptext.to_temp_utf16()!!.ptr;
@@ -211,15 +211,15 @@ enum ProgressBarState : int {NONE, NORMAL, ERROR, PAUSED}
 	}
 
 	// Freeing resources used for this ProgressBar.
-	fn void ProgressBar.dtor(ProgressBar* this) @private
+	fn void ProgressBar.dtor(ProgressBar* this) // @private
 	{
 		this.baseDestroy();
-		allocator::free(mem, this);
+		alloc::free(mem, this);
 	}
 // End of Private functions
 
 
-fn Lresult pbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) @private
+fn Lresult pbWndProc(Hwnd hw, uint msg, Wparam wp, Lparam lp, Uintptr scID, Dwordptr refData) // @private
 {
 	// io::printfn("message %s", msg);
 	ProgressBar* this = bitcast(refData, ProgressBar*);

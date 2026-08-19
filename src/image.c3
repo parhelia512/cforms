@@ -13,7 +13,7 @@ struct Image
 fn Image* newImage(String filePath)
 {
     app.initGdip();
-    Image* this = allocator::new(mem, Image);
+    Image* this = alloc::new(mem, Image);
     @pool() {
         Status st = api_GdipLoadImageFromFile(filePath.to_temp_utf16()!!.ptr, &this.gpImage);
         if (st != Status.OKAY) {
@@ -32,7 +32,7 @@ fn void Image.destroy(&this)
         this.width = 0;
         this.height = 0;        
     }  
-    allocator::free(mem, this);
+    alloc::free(mem, this);
       
 }
 
@@ -40,14 +40,14 @@ fn int Image.getWidth(&this)
 {
     if (!this.gpImage) return 0;
     api_GdipGetImageWidth(this.gpImage, &this.width);
-    return this.width;
+    return (int)this.width;
 }
 
 fn int Image.getHeight(&this)
 {
     if (!this.gpImage) return 0;
     api_GdipGetImageHeight(this.gpImage, &this.height);
-    return this.height;
+    return (int)this.height;
 }
 
 fn Size Image.getSize(&this, bool realTime = false)
@@ -57,7 +57,7 @@ fn Size Image.getSize(&this, bool realTime = false)
         api_GdipGetImageWidth(this.gpImage, &this.width);
         api_GdipGetImageHeight(this.gpImage, &this.height);
     }
-    return {this.width, this.height};    
+    return {(int)this.width, (int)this.height};    
 }
 
 fn void Image.draw(&this, Hdc hdc, int x, int y, int w, int h)

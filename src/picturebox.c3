@@ -41,7 +41,7 @@ fn PictureBox* newPictureBox(Control* parent, int x, int y,
                                 PictureSizeMode sizeMode)
 {
     if (!_isPbxClassReg) registerPBoxClass();
-    PictureBox* this = allocator::new(mem, PictureBox);
+    PictureBox* this = alloc::new(mem, PictureBox);
     this.kind = ControlType.PICTURE_BOX;
     this.initBase(parent, x, y, width, height, &_pbxNumber);	
     this._imgPath = imgPath;
@@ -49,7 +49,7 @@ fn PictureBox* newPictureBox(Control* parent, int x, int y,
     return this;
 }
 
-fn void _pbxCreateHandle(Control* ctl) @private
+fn void _pbxCreateHandle(Control* ctl) // @private
 {
     PictureBox* this = (PictureBox*)ctl;
     if (this._imgPath.len > 0) this.setImageInternal(this._imgPath, false);
@@ -66,7 +66,7 @@ fn void PictureBox.setImage(&this, String imgPath)
     this.setImageInternal(imgPath, true);
 }
 
-fn void PictureBox.setImageInternal(&this, String imgPath, bool setPath) @private
+fn void PictureBox.setImageInternal(&this, String imgPath, bool setPath) // @private
 {
     this.image = newImage(imgPath);
     if (setPath) this._imgPath = imgPath;
@@ -85,10 +85,10 @@ fn void PictureBox.updateClientRect(&this)
 fn void PictureBox.adjustSizeToImage(&this)
 {
     if (!this.image || !this.handle) return;
-    Size sz = this.image.getSize();
-    api_SetWindowPos(this.handle, null, 0, 0, sz.cx, sz.cy,
+    Size sz1 = this.image.getSize();
+    api_SetWindowPos(this.handle, nullHwnd, 0, 0, sz1.cx, sz1.cy,
                     SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-    this._rect = {0, 0, sz.cx, sz.cy};
+    this._rect = {0, 0, sz1.cx, sz1.cy};
     this.invalidate();
 }
 
@@ -97,8 +97,8 @@ fn void PictureBox.computeDestRect(&this)
     int cw = this._rect.right - this._rect.left;
     int ch = this._rect.bottom - this._rect.top;
     if (!this.image) this._rect = {0, 0, 0, 0};
-    int imgW = this.image.width;
-    int imgH = this.image.height;
+    int imgW = (int)this.image.width;
+    int imgH = (int)this.image.height;
     if (imgW == 0 || imgH == 0) this._rect = {0, 0, 0, 0};
     switch (this.sizeMode) {
         case PictureSizeMode.NORMAL:
@@ -146,27 +146,27 @@ fn void PictureBox.invalidate(&this) @inline
 
 
 
-fn void PictureBox.dtor(&this) @private
+fn void PictureBox.dtor(&this) // @private
 {
     if (this.image) this.image.destroy();
     this.baseDestroy();
-    allocator::free(mem, this);
+    alloc::free(mem, this);
 }
 
 
 
-fn void registerPBoxClass() @private
+fn void registerPBoxClass() // @private
 {
     WndClassEx wc;
-    wc.cbSize = WndClassEx.sizeof;
+    wc.cbSize = WndClassEx::size;
     wc.style = CS_OWNDC|CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = &pbxWinProc;
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
     wc.hInstance = app.hins;
-    wc.hIcon = null;
-    wc.hCursor = api_LoadCursor(null, IDC_ARROW);
-    wc.hbrBackground = null;
+    wc.hIcon = (Hicon)null;
+    wc.hCursor = api_LoadCursor(nullHinst, IDC_ARROW);
+    wc.hbrBackground = (Hbrush)null;
     wc.lpszMenuName = null;
     wc.lpszClassName = &_pBoxClass[0];
     short x = api_RegisterClassEx(&wc);
@@ -177,7 +177,7 @@ fn void registerPBoxClass() @private
 
 
 
-fn Lresult pbxWinProc(Hwnd hw, uint msg, Wparam wp, Lparam lp) @private
+fn Lresult pbxWinProc(Hwnd hw, uint msg, Wparam wp, Lparam lp) // @private
 {
 	// log("WIn Message %s", msg);
     PictureBox* this = bitcast(api_GetWindowLongPtr(hw, GWLP_USERDATA), PictureBox*);

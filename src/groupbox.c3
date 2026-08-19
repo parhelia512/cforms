@@ -4,9 +4,9 @@
 		Constructor: newGroupBox()	: GroupBox*
 		Properties:
 			Inherits all properties from Control struct
-			lineColor : Color - Set the border line color
-			style : GroupBoxStyle enum - Check enums.c3
-			inheritStyle : bool - If true, child controls can inherit colors and font from GroupBox.
+			lineColor 		: Color - Set the border line color
+			style 			: GroupBoxStyle enum - Check enums.c3
+			inheritStyle 	: bool - If true, child controls can inherit colors and font from GroupBox.
 		Methods:
 			createHandle()	: Creates the handle of GroupBox
 		Events:
@@ -68,12 +68,8 @@ struct GroupBox
 		this.kind = ControlType.GROUP_BOX;		
 		String gbtext = text == "" ? this.name.str_view() : text;
 		this.initBase(parent, x, y, width, height, &gbNumber, gbtext);	
-		// this._normalText = true;
-		// this._dbFill = true;
-		// this._getWidth = true;
 		this.style = style;
 		this.lineColor = newColor(0xadb5bd);
-		// this.backColor = newColor(0x23b5bd); //this._ownerForm.backColor;
 		this.controls.init(mem, 8); 
 		this._createHandleFunc = &_gbCreateHandle;
 		if (this._ownerForm._enablePrintPoint) this.onMouseDown = &printPoint;
@@ -89,21 +85,18 @@ struct GroupBox
 			this._pen = api_CreatePen(PS_SOLID, 1, this.lineColor.ref);
 			this._dFlags = DIRTY_ALL;
 		}
-		// this._rct = {0, 0, this.width, this.height};
-		// this._drawMode = 2;
 		this._createInternal(this.width, this.height);
 		if (this.handle) {
 			this.setSubClass(&gbWndProc);
-			// if (this.style == GroupBoxStyle.CLASSIC) {
-			// 	api_SetWindowTheme(this.handle, EMP_WSTR_PTR, EMP_WSTR_PTR);
-            // 	this._themeOff = true;
-			// }
+			if (this.style == GroupBoxStyle.CLASSIC) {
+				api_SetWindowTheme(this.handle, EMP_WSTR_PTR, EMP_WSTR_PTR);
+            	this._themeOff = true;
+			}
 			
 			if (this._ownerForm._enablePrintPoint) {
 				this.onMouseDown = &printPoint;
 			}
-		}
-		
+		}		
 	}
 
 	// Set GroupBox's fore color. Fore color changing is tricky.
@@ -127,10 +120,17 @@ struct GroupBox
 	}
 
 	// Set GroupBox's back color.
-	fn void GroupBox.setBackColor(&this, uint clr)
+	fn void GroupBox.setBackColor(&this, uint clr, GroupBoxStyle style = GroupBoxStyle.CLASSIC)
 	{
 		this.backColor.updateColor(clr);
-		
+		if (style == GroupBoxStyle.OVERRIDEN) {
+			if (this.style != GroupBoxStyle.OVERRIDEN) {
+				this._dFlags = DIRTY_ALL;
+				if (!this._memDC) this._createMDC = true;
+			} else {
+				this._dFlags = {.fillBkg, .drawBorder, .drawText};
+			}
+		}
 		this._checkRedraw();
 	}
 
@@ -152,7 +152,10 @@ struct GroupBox
 	fn void GroupBox.setSize(&this, int w, int h) {
 		this.width = w;
 		this.height = h;
-		// this.resetGDIObjects(false);
+		if (this.style == GroupBoxStyle.OVERRIDEN) {
+			this._dFlags = DIRTY_ALL;
+			this._dFlags.measureText = false;
+		}
 		if(this._isCreated) this._setPos(SWP_NOZORDER);
 	}
 
@@ -176,41 +179,28 @@ struct GroupBox
 	// (1) Font name, (2) Font size, (3) Font Weight enum
 	macro void GroupBox.setFont(&this, ... ) {
 		$if $vaarg.len == 1 && $Typeof($vaarg[0]) == Font: 
-			this.font.cloneFrom($vaarg[0]);
-			this.sendMsg(WM_SETFONT, this.font.handle, 1);
-			this._getWidth = true;
-			this._checkRedraw();
+			this.font.cloneFrom($vaarg[0]);			
 		$else 
 			$if $vaarg.len == 3 && $Typeof($vaarg[0]) == String:
 				this._fontSetter(...$vaarg);
 			$endif
 		$endif
+		this.sendMsg(WM_SETFONT, this.font.handle, 1);
+		if (this.style == GroupBoxStyle.OVERRIDEN) {
+			this._dFlags = {.measureText, .fetchBorder, .drawBorder, .drawText};
+		}
+		this._checkRedraw();
 	}
 
 	fn void GroupBox.enablePrintPoint(&this)
 	{
-		// this.onMouseDown = &printPoint;
+		this.onMouseDown = &printPoint;
 	}
 
 
 // End of Public functions
 
 // Private functions
-
-	/* fn void GroupBox.resetGDIObjects(&this, bool brpn) // @private
-	{
-		if (brpn) {
-			if (this._bkBrush) api_DeleteObject((Hgdiobj)this._bkBrush);   
-			this._bkBrush = api_CreateSolidBrush(this.backColor.ref);
-			if (this.style == GroupBoxStyle.OVERRIDEN) {
-				if (this._pen) api_DeleteObject((Hgdiobj)this._pen);
-				this._pen = api_CreatePen(PS_SOLID, PEN_WIDTH, this.backColor.ref);
-			}
-		}
-		if (this._hdc) api_DeleteDC(this._hdc);
-		if (this._hbmp) api_DeleteObject((Hgdiobj)this._hbmp);    
-		this._dbFill = true;
-	} */
 
 	fn void GroupBox.fetchBorderPts(&this) 
 	{
@@ -229,13 +219,8 @@ struct GroupBox
 		this.font.name = fname;
 		this.font.size = fsize;
 		this.font.weight = fweight;
-		this.font.createHandle();
-		this.sendMsg(WM_SETFONT, this.font.handle, 1);
-		this._getWidth = true;
-		this._checkRedraw();
+		this.font.createHandle();	
 	}
-	
-
 
 	fn void GroupBox.textSetter(GroupBox* this, String value) // @private
 	{
